@@ -1,0 +1,10 @@
+services:
+  mynotes:
+    build: .
+    image: mynotes:latest
+    container_name: mynotes
+    restart: unless-stopped
+    ports:
+      - "8322:8322"
+    volumes:
+      - ./data:/data

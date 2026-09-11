@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MyNotes</string>
+    <string name="title_activity_main">MyNotes</string>
+    <string name="package_name">com.dell.mynotes</string>
+    <string name="custom_url_scheme">com.dell.mynotes</string>
+</resources>
