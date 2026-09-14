@@ -1,0 +1,28 @@
+{
+  "name": "mynotes",
+  "version": "0.2.9",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "dev:server": "pnpm --filter server dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm --filter web build && pnpm --filter server build",
+    "build:app": "node -e \"fs.rmSync('www',{recursive:true,force:true})\" && node -e \"fs.cpSync('web/dist','www',{recursive:true})\" && pnpm exec cap sync android",
+    "start": "pnpm --filter server start",
+    "smoke": "pnpm --filter server smoke"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/status-bar": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+node_modules/
+dist/
+data/
+*.log
+.DS_Store
+
+# Android 构建产物
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+www/
+
+# IDE
+.idea/
+
+# 内部文档与构建产物（不发布）
+PLAN.md
+CHANGELOG.md
+MyNotes-debug.apk
+
+# 部署打包目录
+deploy-server/
+deploy.tar
+
+# Docker 镜像导出（发布到 Release，不进仓库）
+*.tar
+*.tar.gz

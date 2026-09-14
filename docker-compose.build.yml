@@ -1,0 +1,11 @@
+# 从源码构建部署（NAS 上需要有构建环境，或改用 docker-compose.yml + docker load 方式）
+services:
+  mynotes:
+    build: .
+    image: mynotes:latest
+    container_name: mynotes
+    restart: unless-stopped
+    ports:
+      - "8322:8322"
+    volumes:
+      - ./data:/data
