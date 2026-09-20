@@ -147,7 +147,7 @@ async function empty(): Promise<void> {
         v-if="store.view !== 'trash'"
         class="new-card"
         type="button"
-        :title="store.encKey ? '新建明文密码卡片' : '新建加密密码卡片'"
+        :title="store.encKey ? '创建加密笔记' : '创建不加密笔记'"
         @click="newCard()"
       >
         <svg v-if="store.encKey" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">

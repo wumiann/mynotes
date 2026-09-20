@@ -157,7 +157,7 @@ function dropTo(groupId: string | null): void {
       <button
         type="button"
         class="vault-state"
-        :title="store.encKey ? '卡片已解锁，点击锁定' : '卡片已锁定，点击解锁'"
+        :title="store.encKey ? '已解锁，可创建查看加密笔记' : '未解锁'"
         @click="toggleVaultState"
       >
         <LockIcon :open="!!store.encKey" :filled="!store.encKey" />
