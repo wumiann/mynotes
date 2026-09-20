@@ -105,7 +105,9 @@ function computeTagList(notes: NoteSummary[]): { tag: string; count: number }[] 
 }
 
 export async function refreshNotes(): Promise<void> {
-  store.loadingList = true;
+  // 列表已有数据时保持旧内容原地刷新：否则每次新建落库/保存/轮询，
+  // 整个列表会被“加载中…”替换再重建，肉眼看是闪一下
+  if (!store.notes.length) store.loadingList = true;
   try {
     const params: {
       q?: string;
