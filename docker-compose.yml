@@ -1,11 +1,11 @@
-# 配合 docker load 加载的镜像使用（v0.2.10 Release 的 tar）：
+# 配合 docker load 加载的镜像使用（v0.2.11 Release 的 tar）：
 #   ARM 设备：  docker load -i mynotes-docker-arm64.tar
 #   x86 设备：  docker load -i mynotes-docker-amd64.tar
-# 注意 image 名需与实际加载的标签一致（x86 版为 mynotes:0.2.10-amd64）
+# 注意 image 名需与实际加载的标签一致（x86 版为 mynotes:0.2.11-amd64）
 # 如需从源码构建部署：docker compose -f docker-compose.build.yml up -d --build
 services:
   mynotes:
-    image: mynotes:0.2.10-arm64
+    image: mynotes:0.2.11-arm64
     container_name: mynotes
     restart: unless-stopped
     ports:
