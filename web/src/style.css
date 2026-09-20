@@ -661,12 +661,15 @@ select:focus-visible {
 
 .ni-actions {
   margin-left: auto;
-  display: none;
+  display: inline-flex;
   gap: 8px;
+  /* 常驻占位：display none↔inline-flex 切换会把 meta 行撑高 1px，
+     鼠标扫过列表时每条依次变高、下方内容整体乱动 */
+  visibility: hidden;
 }
 
 .note-item:hover .ni-actions {
-  display: inline-flex;
+  visibility: visible;
 }
 
 .ni-actions button {
