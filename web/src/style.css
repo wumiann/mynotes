@@ -1010,11 +1010,8 @@ select:focus-visible {
 .tiptap-content .tiptap,
 .tiptap-content .ProseMirror {
   min-height: 100%;
-  max-width: 46em;
   user-select: text;
   -webkit-user-select: text;
-  /* 左对齐：margin auto 居中会让宽屏（16:9 全屏）下初始光标落点漂到文本框中部 */
-  margin: 0;
   padding: 26px 30px 60px;
   outline: none;
   font-size: 16px;
