@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import { TextSelection } from '@tiptap/pm/state';
 import { promptDialog } from '../lib/dialog';
 
 const props = withDefaults(
@@ -23,6 +24,25 @@ const editor = useEditor({
   extensions: [StarterKit, Image.configure({ inline: false })],
   editable: props.editable,
   editorProps: {
+    // 点击最后一行下方的空白区：自动扩展一行并把光标放进去（类似在线文档）
+    handleClick: (view, _pos, event) => {
+      const { state } = view;
+      const end = state.doc.content.size;
+      // 最后一行底边坐标；点击位置在其下方几个像素外才算“点下一行”
+      const lastLineBottom = view.coordsAtPos(Math.max(0, end - 1)).bottom;
+      if (event.clientY <= lastLineBottom + 6) return false;
+      const lastNode = state.doc.lastChild;
+      const tr = state.tr;
+      if (lastNode?.type.name === 'paragraph' && !lastNode.content.size) {
+        // 末尾已是空行：光标直接移入，不再重复加行
+        tr.setSelection(TextSelection.create(tr.doc, end - 1));
+      } else {
+        tr.insert(end, state.schema.nodes.paragraph.create());
+        tr.setSelection(TextSelection.create(tr.doc, tr.doc.content.size - 1));
+      }
+      view.dispatch(tr.scrollIntoView());
+      return true;
+    },
     // 粘贴 / 拖入图片文件：交给父组件上传后插入
     handlePaste: (_view, event) => {
       const files = Array.from(event.clipboardData?.files ?? []).filter((f) =>
