@@ -1063,8 +1063,8 @@ select:focus-visible {
 .tiptap-content ul[data-type='taskList'] li > label {
   flex-shrink: 0;
   user-select: none;
-  /* 17px 圆形 checkbox 与 1.85 行高的 16px 文字首行垂直居中（实测校准） */
-  margin-top: -3px;
+  /* 17px 圆形 checkbox 与 16px 文字墨迹对齐：label display:block 顶部有行距空隙，实测校准 +5px */
+  margin-top: 5px;
 }
 
 .tiptap-content ul[data-type='taskList'] li > div {
