@@ -92,6 +92,43 @@ function isActive(name: string, attrs?: Record<string, unknown>): boolean {
   return editor.value?.isActive(name, attrs) ?? false;
 }
 
+// 重置：把本文档所有待办项的勾选状态清为未完成
+function resetTasks(): void {
+  const ed = editor.value;
+  if (!ed) return;
+  let changed = false;
+  ed.state.doc.descendants((node) => {
+    if (node.type.name === 'taskItem' && node.attrs.checked) {
+      changed = true;
+      return false;
+    }
+    return true;
+  });
+  if (!changed) return;
+  ed.chain().focus().command(({ tr, state }) => {
+    state.doc.descendants((node, pos) => {
+      if (node.type.name === 'taskItem' && node.attrs.checked) {
+        tr.setNodeMarkup(pos, undefined, { ...node.attrs, checked: false });
+      }
+      return true;
+    });
+    return true;
+  }).run();
+}
+
+function hasCheckedTasks(): boolean {
+  void tick.value;
+  let found = false;
+  editor.value?.state.doc.descendants((node) => {
+    if (node.type.name === 'taskItem' && node.attrs.checked) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
 function toggleLink(): void {
   const ed = editor.value;
   if (!ed) return;
@@ -140,6 +177,8 @@ defineExpose({
         @mousedown.prevent @click="editor?.chain().focus().toggleOrderedList().run()">1. 列表</button>
       <button type="button" :class="{ on: isActive('taskList') }" title="待办列表"
         @mousedown.prevent @click="editor?.chain().focus().toggleTaskList().run()">☑ 待办</button>
+      <button v-if="hasCheckedTasks()" type="button" title="清除本页所有勾选状态"
+        @mousedown.prevent @click="resetTasks">重置</button>
       <button type="button" :class="{ on: isActive('blockquote') }" title="引用"
         @mousedown.prevent @click="editor?.chain().focus().toggleBlockquote().run()">引用</button>
       <span class="sep"></span>
