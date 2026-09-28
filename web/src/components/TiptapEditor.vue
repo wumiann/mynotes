@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TextSelection } from '@tiptap/pm/state';
 import { promptDialog } from '../lib/dialog';
 
@@ -21,7 +22,7 @@ const tick = ref(0);
 
 const editor = useEditor({
   content: props.content,
-  extensions: [StarterKit, Image.configure({ inline: false })],
+  extensions: [StarterKit, Image.configure({ inline: false }), TaskList, TaskItem],
   editable: props.editable,
   editorProps: {
     // 点击最后一行下方的空白区：自动扩展一行并把光标放进去（类似在线文档）
@@ -137,6 +138,8 @@ defineExpose({
         @mousedown.prevent @click="editor?.chain().focus().toggleBulletList().run()">• 列表</button>
       <button type="button" :class="{ on: isActive('orderedList') }" title="有序列表"
         @mousedown.prevent @click="editor?.chain().focus().toggleOrderedList().run()">1. 列表</button>
+      <button type="button" :class="{ on: isActive('taskList') }" title="待办列表"
+        @mousedown.prevent @click="editor?.chain().focus().toggleTaskList().run()">☑ 待办</button>
       <button type="button" :class="{ on: isActive('blockquote') }" title="引用"
         @mousedown.prevent @click="editor?.chain().focus().toggleBlockquote().run()">引用</button>
       <span class="sep"></span>

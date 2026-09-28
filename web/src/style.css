@@ -1048,6 +1048,40 @@ select:focus-visible {
   color: var(--primary);
 }
 
+/* 待办列表：无序列表样式会波及 taskList（圆点/padding），这里整体覆写 */
+.tiptap-content ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.1em;
+}
+
+.tiptap-content ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tiptap-content ul[data-type='taskList'] li > label {
+  flex-shrink: 0;
+  user-select: none;
+  margin-top: 7px; /* 与 1.85 行高的首行文字对齐 */
+}
+
+.tiptap-content ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiptap-content ul[data-type='taskList'] input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #f5a623; /* 勾选后复选框橙色，与置顶星号同色 */
+}
+
+.tiptap-content ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--muted); /* 勾选后文字变灰 */
+}
+
 .tiptap-content blockquote {
   margin: 0.7em 0;
   padding: 0.35em 1em;
