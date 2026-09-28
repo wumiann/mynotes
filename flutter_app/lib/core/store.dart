@@ -46,7 +46,9 @@ class AppState with ChangeNotifier {
 final store = AppState();
 
 /// 刷新列表（保持视图条件），并顺带刷新分组
+int _refreshSeq = 0; // 并发守卫：只有最新一次请求的结果可写回，防止旧响应覆盖新数据
 Future<void> refreshNotes() async {
+  final seq = ++_refreshSeq;
   if (!store.loadingList) {
     store.loadingList = true;
     store.notifyListeners();
@@ -63,10 +65,12 @@ Future<void> refreshNotes() async {
         _ => null,
       },
     );
+    if (seq != _refreshSeq) return; // 已有更新的请求在途，丢弃本次结果
     store.notes = notes;
     store.loadingList = false;
     store.notifyListeners();
   } catch (e) {
+    if (seq != _refreshSeq) return;
     store.loadingList = false;
     store.notifyListeners();
     rethrow;
