@@ -4,10 +4,9 @@ packages:
   appflowy_editor:
     dependency: "direct main"
     description:
-      name: appflowy_editor
-      sha256: c2367acdd93c7eeefaf6c58e5fed1a1c62cf02b8368102b786b5c6a0d1c583cf
-      url: "https://pub.flutter-io.cn"
-    source: hosted
+      path: "third_party/appflowy_editor"
+      relative: true
+    source: path
     version: "6.2.0"
   archive:
     dependency: transitive
@@ -273,13 +272,13 @@ packages:
     source: hosted
     version: "0.20.3"
   keyboard_height_plugin:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: keyboard_height_plugin
-      sha256: "3a51c8ebb43465ebe0b3bad17f3b6d945421e58011f3f5a08134afe69a3d775f"
+      sha256: d57944cd3e4f8d9cb4adb1b7f1300d14a8dcec99bfb4414d78c7dd0120c1d66c
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "0.1.5"
+    version: "0.3.0"
   leak_tracker:
     dependency: transitive
     description:

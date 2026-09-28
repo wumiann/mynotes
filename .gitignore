@@ -31,3 +31,6 @@ deploy.tar
 
 # Flutter 重写规格（内部文档）
 FLUTTER-REWRITE.md
+
+# Flutter 构建中间产物
+flutter_app/android/build/

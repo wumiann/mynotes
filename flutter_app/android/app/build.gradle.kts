@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.dell.mynotes.flutter"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

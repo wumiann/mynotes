@@ -52,3 +52,6 @@ tool/
 
 # 真实笔记内容做测试素材，禁止提交到公开仓库
 test/fixtures/
+flutter_app/android/build/
+flutter_app/android/.gradle/
+flutter_app/third_party/appflowy_editor/.dart_tool/

@@ -89,3 +89,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+dependency_overrides:
+  appflowy_editor:
+    path: third_party/appflowy_editor
+  # appflowy_editor 依赖的旧版 compileSdk 31，与 androidx 新版要求不兼容
+  keyboard_height_plugin: 0.3.0
