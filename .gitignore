@@ -28,3 +28,6 @@ deploy.tar
 # Docker 镜像导出（发布到 Release，不进仓库）
 *.tar
 *.tar.gz
+
+# Flutter 重写规格（内部文档）
+FLUTTER-REWRITE.md
