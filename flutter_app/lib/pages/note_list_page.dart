@@ -11,8 +11,9 @@ import '../core/store.dart';
 import 'editor_page.dart';
 
 class NoteListPage extends StatefulWidget {
-  const NoteListPage({super.key, required this.onOpenNote});
+  const NoteListPage({super.key, required this.onOpenNote, required this.onOpenCard});
   final ValueChanged<String> onOpenNote;
+  final ValueChanged<String> onOpenCard; // 卡片类型笔记走卡片编辑页
 
   @override
   State<NoteListPage> createState() => _NoteListPageState();
@@ -108,12 +109,24 @@ class _NoteListPageState extends State<NoteListPage> {
           ),
         ),
         actions: [
-          if (!isTrash)
+          if (!isTrash) ...[
+            // 新建密码卡片：单按钮双状态（对齐 Web 语义）——
+            // 图标=将建出的卡片类型，与侧栏解锁状态刻意相反
+            IconButton(
+              tooltip: store.vaultUnlocked ? '创建加密笔记' : '创建不加密笔记',
+              icon: Icon(
+                store.vaultUnlocked ? Icons.lock : Icons.lock_open,
+                size: 20,
+                color: store.vaultUnlocked ? AppColors.accentOrange : p.text,
+              ),
+              onPressed: () => widget.onOpenCard('new-card:${store.vaultUnlocked ? 'enc' : 'plain'}'),
+            ),
             IconButton(
               tooltip: '新建笔记',
               icon: Icon(Icons.edit_note_outlined, color: p.text),
               onPressed: () => widget.onOpenNote('new'),
             ),
+          ],
         ],
       ),
       body: Column(
@@ -145,7 +158,11 @@ class _NoteListPageState extends State<NoteListPage> {
                             isTrash: isTrash,
                               onTap: () {
                                 debugPrint('NL: tap card ${store.notes[i].id}');
-                                widget.onOpenNote(store.notes[i].id);
+                                if (store.notes[i].type == 'card') {
+                                  widget.onOpenCard(store.notes[i].id);
+                                } else {
+                                  widget.onOpenNote(store.notes[i].id);
+                                }
                               },
                             onDelete: () => _delete(store.notes[i]),
                             onRestore: () => _restore(store.notes[i].id),
@@ -245,7 +262,9 @@ class _NoteCard extends StatelessWidget {
             if (note.plainText.isNotEmpty || isCard) ...[
               const SizedBox(height: 3),
               Text(
-                isCard ? (note.enc ? '解锁后查看' : note.excerpt) : note.excerpt,
+                isCard
+                    ? (note.enc ? (store.cardExcerpts[note.id] ?? '解锁后查看') : _plainCardExcerpt(note))
+                    : note.excerpt,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.5),
@@ -312,5 +331,15 @@ class _NoteCard extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('删除失败：$e')));
       }
     }
+  }
+}
+
+/// 明文卡片摘要：解析 content 取首套账号（服务端 excerpt 即 plainText 前 120 字，这里复算更稳）
+String _plainCardExcerpt(Note n) {
+  try {
+    final c = CardFields.fromJsonString(n.content);
+    return c.excerptFor().isNotEmpty ? c.excerptFor() : n.excerpt;
+  } catch (_) {
+    return n.excerpt;
   }
 }

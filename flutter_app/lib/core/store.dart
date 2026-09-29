@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'api.dart';
+import 'crypto.dart';
 import 'models.dart';
 
 enum NoteView { all, group, ungrouped, pinned, trash, tag }
@@ -22,6 +23,11 @@ class AppState with ChangeNotifier {
   // 登录态
   bool authed = false;
   AppSettings settings = AppSettings();
+
+  // 解锁后缓存：加密卡 id → 解密出的摘要（首套账号）
+  Map<String, String> cardExcerpts = {};
+
+  bool get vaultUnlocked => Vault.instance.unlocked;
 
   String get viewTitle {
     switch (view) {
@@ -67,6 +73,7 @@ Future<void> refreshNotes() async {
     );
     if (seq != _refreshSeq) return; // 已有更新的请求在途，丢弃本次结果
     store.notes = notes;
+    await hydrateCardExcerpts(); // 已解锁时解密加密卡摘要（内部有 unlocked 守卫）
     store.loadingList = false;
     store.notifyListeners();
   } catch (e) {
@@ -104,4 +111,39 @@ Future<void> refreshTags() async {
     store.tagList = list;
     store.notifyListeners();
   } catch (_) {}
+}
+
+// ---------- 密码卡片解锁（对齐 Web store.ts 的 unlockVault/lockVault） ----------
+
+/// 解锁：派生 encKey（kdfSalt2）并解密当前列表加密卡的摘要
+Future<void> unlockVault(String password) async {
+  final username = api.username;
+  if (username == null) throw Exception('未登录');
+  final salts = await api.getSalts(username);
+  await Vault.instance.unlock(password, salts['kdfSalt2'] as String);
+  await hydrateCardExcerpts();
+  store.notifyListeners();
+}
+
+/// 锁定：清密钥与摘要缓存
+void lockVault() {
+  Vault.instance.lock();
+  store.cardExcerpts = {};
+  store.notifyListeners();
+}
+
+/// 解密当前列表中加密卡的摘要（对齐 Web hydrateCardTitles）
+Future<void> hydrateCardExcerpts() async {
+  if (!Vault.instance.unlocked) return;
+  for (final n in store.notes) {
+    if (n.type == 'card' && n.enc && n.content.isNotEmpty) {
+      try {
+        final plain = Vault.instance.decrypt(n.content);
+        final card = CardFields.fromJsonString(plain);
+        store.cardExcerpts[n.id] = card.excerptFor();
+      } catch (_) {
+        // 解密失败（密钥不匹配）：摘要保持「解锁后查看」
+      }
+    }
+  }
 }
