@@ -2,7 +2,9 @@
 import 'package:flutter/foundation.dart';
 
 import 'api.dart';
+import 'sync.dart';
 import 'crypto.dart';
+import 'data.dart';
 import 'models.dart';
 
 enum NoteView { all, group, ungrouped, pinned, trash, tag }
@@ -60,17 +62,8 @@ Future<void> refreshNotes() async {
     store.notifyListeners();
   }
   try {
-    final notes = await api.listNotes(
-      q: store.search.trim().isEmpty ? null : store.search.trim(),
-      tag: store.view == NoteView.tag ? store.activeTag : null,
-      pinned: store.view == NoteView.pinned ? true : null,
-      trash: store.view == NoteView.trash ? true : null,
-      group: switch (store.view) {
-        NoteView.group => store.activeGroupId,
-        NoteView.ungrouped => 'none',
-        _ => null,
-      },
-    );
+    // 本地优先：视图过滤在本地做（数据由同步引擎维护）
+    final notes = await data.listNotes();
     if (seq != _refreshSeq) return; // 已有更新的请求在途，丢弃本次结果
     store.notes = notes;
     await hydrateCardExcerpts(); // 已解锁时解密加密卡摘要（内部有 unlocked 守卫）
@@ -85,33 +78,13 @@ Future<void> refreshNotes() async {
 }
 
 Future<void> refreshGroups() async {
-  try {
-    store.groups = await api.listGroups();
-    store.notifyListeners();
-  } catch (_) {
-    // 分组刷新失败不阻塞主流程
-  }
+  // 分组来自本地库（同步引擎更新）
+  store.groups = await localdb.allGroups();
+  store.notifyListeners();
 }
 
-/// 标签列表：全量笔记统计（与 Web 端一致——客户端算）
-Future<void> refreshTags() async {
-  try {
-    final all = await api.listNotes();
-    final m = <String, int>{};
-    for (final n in all) {
-      for (final t in n.tags) {
-        m[t] = (m[t] ?? 0) + 1;
-      }
-    }
-    final list = m.entries.map((e) => TagCount(tag: e.key, count: e.value)).toList();
-    list.sort((a, b) {
-      final c = b.count.compareTo(a.count);
-      return c != 0 ? c : a.tag.compareTo(b.tag);
-    });
-    store.tagList = list;
-    store.notifyListeners();
-  } catch (_) {}
-}
+/// 标签列表：本地全量统计
+Future<void> refreshTags() => refreshTagsFromLocal();
 
 // ---------- 密码卡片解锁（对齐 Web store.ts 的 unlockVault/lockVault） ----------
 

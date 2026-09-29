@@ -130,6 +130,14 @@ class Api {
     return ((data['notes'] as List?) ?? []).map((e) => Note.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  /// 全量拉取（App 同步用，含回收站）
+  Future<List<Note>> listNotesFull() async {
+    final data = await _req('GET', '/api/notes/full', timeoutSec: 30);
+    return ((data['notes'] as List?) ?? []).map((e) => Note.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> emptyTrash() async => _req('POST', '/api/trash/empty');
+
   Future<Note> getNote(String id) async =>
       Note.fromJson((await _req('GET', '/api/notes/$id'))['note'] as Map<String, dynamic>);
 

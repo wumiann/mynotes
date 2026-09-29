@@ -240,3 +240,18 @@ String fmtTime(String iso) {
   if (dt.year == now.year) return '${dt.month}月${dt.day}日';
   return '${dt.year}年${dt.month}月${dt.day}日';
 }
+
+/// 队列 payload 还原（与 NotePayload.toJson 互逆）
+extension NotePayloadFromJson on NotePayload {
+  static NotePayload fromJson(Map<String, dynamic> j) => NotePayload(
+        type: (j['type'] as String?) ?? 'text',
+        title: (j['title'] as String?) ?? '',
+        content: (j['content'] as String?) ?? '',
+        plainText: (j['plainText'] as String?) ?? '',
+        tags: ((j['tags'] as List?) ?? []).map((e) => e as String).toList(),
+        pinned: j['pinned'] == true,
+        groupId: j['groupId'] as String?,
+        enc: j['enc'] as bool?,
+        expectedVersion: (j['expectedVersion'] as num?)?.toInt(),
+      );
+}

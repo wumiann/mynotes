@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
+import '../core/data.dart';
 import '../core/app_theme.dart';
 import '../core/models.dart';
 import '../core/store.dart';
+import '../core/sync.dart';
 import 'editor_page.dart';
 
 class NoteListPage extends StatefulWidget {
@@ -70,7 +72,7 @@ class _NoteListPageState extends State<NoteListPage> {
     );
     if (ok != true) return;
     try {
-      await api.deleteNote(n.id);
+      await data.deleteNote(n.id);
       await refreshNotes();
       await refreshTags();
     } catch (e) {
@@ -80,7 +82,7 @@ class _NoteListPageState extends State<NoteListPage> {
 
   Future<void> _restore(String id) async {
     try {
-      await api.restoreNote(id);
+      await data.restoreNote(id);
       await refreshNotes();
       await refreshTags();
     } catch (e) {
@@ -109,6 +111,38 @@ class _NoteListPageState extends State<NoteListPage> {
           ),
         ),
         actions: [
+          // 同步徽标：✓已同步 / ⟳同步中 / ⏳N 待同步 / ⛔离线（点击立即同步）
+          ListenableBuilder(
+            listenable: syncState,
+            builder: (context, _) {
+              final Widget badge;
+              if (syncState.syncing) {
+                badge = SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: p.primary),
+                );
+              } else if (syncState.pending > 0) {
+                badge = Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: p.primaryWeak, borderRadius: BorderRadius.circular(999)),
+                  child: Text('${syncState.pending}', style: TextStyle(color: p.primary, fontSize: 11.5)),
+                );
+              } else if (syncState.online == false) {
+                badge = Icon(Icons.block, size: 18, color: p.danger);
+              } else {
+                badge = Icon(Icons.check_circle_outline, size: 18, color: p.muted);
+              }
+              return IconButton(
+                tooltip: syncState.pending > 0
+                    ? '${syncState.pending} 条待同步，点击立即同步'
+                    : syncState.online == false
+                        ? '离线模式，点击重试同步'
+                        : '已同步，点击刷新',
+                onPressed: () => syncNow().catchError((_) {}),
+                icon: badge,
+              );
+            },
+          ),
           if (!isTrash) ...[
             // 新建密码卡片：单按钮双状态（对齐 Web 语义）——
             // 图标=将建出的卡片类型，与侧栏解锁状态刻意相反
@@ -324,7 +358,7 @@ class _NoteCard extends StatelessWidget {
     );
     if (ok != true) return;
     try {
-      await api.purgeNote(note.id);
+      await data.purgeNote(note.id);
       await refreshNotes();
     } catch (e) {
       if (context.mounted) {

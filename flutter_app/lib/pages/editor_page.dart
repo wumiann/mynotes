@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
+import '../core/data.dart';
 import '../core/app_theme.dart';
 import '../core/models.dart';
 import '../core/store.dart';
@@ -69,8 +70,15 @@ class _EditorPageState extends State<EditorPage> {
 
   Future<void> _load() async {
     try {
-      final n = await api.getNote(widget.noteId);
+      final n = await data.getNote(widget.noteId);
       if (!mounted) return;
+      if (n == null) {
+        setState(() {
+          loaded = true;
+          errorMsg = '笔记不存在或已彻底删除';
+        });
+        return;
+      }
       Map<String, dynamic> doc;
       try {
         doc = jsonDecode(n.content) as Map<String, dynamic>;
@@ -155,8 +163,8 @@ class _EditorPageState extends State<EditorPage> {
         expectedVersion: note == null ? null : version,
       );
       final res = note == null
-          ? await api.createNote(payload)
-          : await api.updateNote(note!.id, payload);
+          ? await data.createNote(payload)
+          : await data.updateNote(note!.id, payload);
       if (!mounted) return true;
       setState(() {
         note = res;
@@ -211,7 +219,7 @@ class _EditorPageState extends State<EditorPage> {
     );
     if (ok != true) return;
     try {
-      await api.deleteNote(note!.id);
+      await data.deleteNote(note!.id);
       await refreshNotes();
       await refreshTags();
       widget.onClosed();

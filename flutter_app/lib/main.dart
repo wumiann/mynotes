@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'core/api.dart';
 import 'core/app_theme.dart';
 import 'core/store.dart';
+import 'core/sync.dart';
 import 'pages/bootstrap_page.dart';
 import 'pages/home_page.dart';
 import 'pages/login_page.dart';
@@ -39,11 +40,13 @@ class _MyNotesAppState extends State<MyNotesApp> {
       } catch (_) {}
       _applyTheme(store.settings.themeMode);
       store.authed = true;
+      bootSync(); // 本地优先同步：全量拉取 + 60s 周期 + 前台切换
     }
     setState(() => _booted = true);
   }
 
   void _onStoreChanged() {
+    if (store.authed) bootSync(); // 登录路径进入（内部幂等守卫）
     if (store.settings.themeMode != _themeModeName) _applyTheme(store.settings.themeMode);
     // 登出时无需处理：_MyNotes 根据store.authed重建
     setState(() {});

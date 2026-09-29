@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/api.dart';
+import '../core/data.dart';
 import '../core/app_theme.dart';
 import '../core/crypto.dart';
 import '../core/models.dart';
@@ -56,8 +57,15 @@ class _CardEditorPageState extends State<CardEditorPage> {
 
   Future<void> _load() async {
     try {
-      final n = await api.getNote(widget.noteId);
+      final n = await data.getNote(widget.noteId);
       if (!mounted) return;
+      if (n == null) {
+        setState(() {
+          loaded = true;
+          errorMsg = '笔记不存在或已彻底删除';
+        });
+        return;
+      }
       setState(() {
         note = n;
         _title.text = n.title;
@@ -132,8 +140,8 @@ class _CardEditorPageState extends State<CardEditorPage> {
         expectedVersion: note == null ? null : version,
       );
       final res = note == null
-          ? await api.createNote(payload)
-          : await api.updateNote(note!.id, payload);
+          ? await data.createNote(payload)
+          : await data.updateNote(note!.id, payload);
       if (!mounted) return true;
       setState(() {
         note = res;
@@ -525,7 +533,7 @@ class _CardEditorPageState extends State<CardEditorPage> {
     );
     if (ok != true) return;
     try {
-      await api.deleteNote(note!.id);
+      await data.deleteNote(note!.id);
       await refreshNotes();
       widget.onClosed();
     } catch (e) {
