@@ -255,3 +255,15 @@ extension NotePayloadFromJson on NotePayload {
         expectedVersion: (j['expectedVersion'] as num?)?.toInt(),
       );
 }
+
+class NoteVersionMeta {
+  NoteVersionMeta({required this.version, required this.title, required this.updatedAt});
+  final int version;
+  final String title;
+  final String updatedAt;
+  factory NoteVersionMeta.fromJson(Map<String, dynamic> j) => NoteVersionMeta(
+        version: (j['version'] as num?)?.toInt() ?? 0,
+        title: (j['title'] as String?) ?? '',
+        updatedAt: (j['updatedAt'] as String?) ?? '',
+      );
+}

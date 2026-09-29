@@ -7,6 +7,7 @@ import '../core/store.dart';
 import 'card_editor_page.dart';
 import 'editor_page.dart';
 import 'note_list_page.dart';
+import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -164,6 +165,13 @@ class AppDrawer extends StatelessWidget {
                     child: Text(api.username ?? '',
                         style: TextStyle(color: p.text, fontSize: 13.5, fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis),
+                  ),
+                  IconButton(
+                    tooltip: '设置',
+                    icon: Icon(Icons.settings_outlined, size: 19, color: p.muted),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsPage()),
+                    ),
                   ),
                   TextButton(
                     onPressed: () async {

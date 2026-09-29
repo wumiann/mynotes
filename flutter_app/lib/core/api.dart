@@ -166,6 +166,28 @@ class Api {
       AppSettings.fromJson((await _req('GET', '/api/settings')) as Map<String, dynamic>);
 
   Future<void> updateSettings(Map<String, dynamic> s) async => _req('PUT', '/api/settings', body: s);
+
+// ---------- 版本历史 ----------
+  Future<List<NoteVersionMeta>> getNoteVersions(String id) async {
+    final data = await _req('GET', '/api/notes/$id/versions');
+    return ((data['versions'] as List?) ?? [])
+        .map((e) => NoteVersionMeta.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<String> getNoteVersionPlainText(String id, int version) async {
+    final data = await _req('GET', '/api/notes/$id/versions/$version');
+    return ((data['version'] as Map<String, dynamic>?)?['plainText'] as String?) ?? '';
+  }
+
+  Future<void> restoreNoteVersion(String id, int version) async =>
+      _req('POST', '/api/notes/$id/restore-version', body: {'version': version});
+
+  // ---------- 统计 / 其他设备 ----------
+  Future<Map<String, dynamic>> getStats() async =>
+      (await _req('GET', '/api/stats')) as Map<String, dynamic>;
+
+  Future<void> logoutOthers() async => _req('POST', '/api/auth/logout-others');
 }
 
 final api = Api();

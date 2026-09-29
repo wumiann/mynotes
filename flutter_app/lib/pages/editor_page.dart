@@ -12,6 +12,8 @@ import '../core/data.dart';
 import '../core/app_theme.dart';
 import '../core/models.dart';
 import '../core/store.dart';
+import '../core/sync.dart';
+import 'history_page.dart';
 import '../editor/code_block_component.dart';
 import '../editor/tiptap_converter.dart';
 
@@ -197,6 +199,19 @@ class _EditorPageState extends State<EditorPage> {
     widget.onClosed();
   }
 
+  Future<void> _openHistory() async {
+    // 打开历史前先把未保存内容落库（对齐 Web 行为）
+    await _save();
+    final restored = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => HistoryPage(noteId: widget.noteId, noteTitle: _title.text)),
+    );
+    if (restored == true) {
+      // 恢复后：立即同步拉取最新，并重载当前页
+      await syncNow(silent: true).catchError((_) {});
+      await _load();
+    }
+  }
+
   Future<void> _delete() async {
     if (note == null) {
       widget.onClosed();
@@ -299,6 +314,12 @@ class _EditorPageState extends State<EditorPage> {
                 _markDirty();
               },
             ),
+            if (note != null)
+              IconButton(
+                tooltip: '版本历史',
+                icon: Icon(Icons.history, size: 21, color: p.muted),
+                onPressed: _openHistory,
+              ),
             if (note != null)
               IconButton(
                 tooltip: '删除',
