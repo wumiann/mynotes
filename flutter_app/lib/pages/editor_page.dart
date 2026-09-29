@@ -9,12 +9,15 @@ import 'package:flutter/material.dart';
 
 import '../core/api.dart';
 import '../core/data.dart';
+import '../core/imgcache.dart';
 import '../core/app_theme.dart';
 import '../core/models.dart';
 import '../core/store.dart';
 import '../core/sync.dart';
 import 'history_page.dart';
 import '../editor/code_block_component.dart';
+import '../editor/image_mobile_toolbar_item.dart';
+import '../editor/todo_mobile_toolbar_item.dart';
 import '../editor/tiptap_converter.dart';
 
 class EditorPage extends StatefulWidget {
@@ -58,6 +61,52 @@ class _EditorPageState extends State<EditorPage> {
 
   bool _installing = false; // 文档装载期间的事务不算用户修改
 
+  /// 显示前：/a/xxx → 本地缓存路径（带鉴权下载；AppFlowy image 用 Image.file 显示）
+  Future<Map<String, dynamic>> _resolveImages(Map<String, dynamic> doc) async {
+    await _walk(doc, (node) async {
+      if (node['type'] == 'image') {
+        final attrs = node['attrs'] as Map<String, dynamic>?;
+        final src = attrs?['src'];
+        if (src is String && src.startsWith('/a/')) {
+          attrs!['src'] = await ImgCache.instance.resolve(src);
+        }
+      }
+    });
+    return doc;
+  }
+
+  /// 保存前：本地缓存路径 → 还原 /a/xxx
+  Map<String, dynamic> _restoreImages(Map<String, dynamic> doc) {
+    _walkSync(doc, (node) {
+      if (node['type'] == 'image') {
+        final attrs = node['attrs'] as Map<String, dynamic>?;
+        final src = attrs?['src'];
+        if (src is String) {
+          attrs!['src'] = ImgCache.instance.restore(src);
+        }
+      }
+    });
+    return doc;
+  }
+
+  Future<void> _walk(dynamic node, Future<void> Function(Map<String, dynamic>) fn) async {
+    if (node is Map<String, dynamic>) {
+      await fn(node);
+      for (final c in (node['content'] as List? ?? [])) {
+        await _walk(c, fn);
+      }
+    }
+  }
+
+  void _walkSync(dynamic node, void Function(Map<String, dynamic>) fn) {
+    if (node is Map<String, dynamic>) {
+      fn(node);
+      for (final c in (node['content'] as List? ?? [])) {
+        _walkSync(c, fn);
+      }
+    }
+  }
+
   void _installDocument(Map<String, dynamic> tiptapDoc) {
     final es = EditorState(document: Document.fromJson({'document': tiptapToAppflowy(tiptapDoc)}));
     es.transactionStream.listen((tr) {
@@ -96,6 +145,7 @@ class _EditorPageState extends State<EditorPage> {
         version = n.version;
         loaded = true;
       });
+      await _resolveImages(doc);
       _installDocument(doc);
     } catch (e) {
       setState(() {
@@ -125,7 +175,9 @@ class _EditorPageState extends State<EditorPage> {
     if (es == null) return '{"type":"doc","content":[]}';
     final af = es.document.toJson();
     final root = (af['document'] ?? af) as Map<String, dynamic>;
-    return jsonEncode(appflowyToTiptap(root));
+    final tt = appflowyToTiptap(root);
+    _restoreImages(tt); // 本地缓存路径 → /a/xxx（服务端存稳定引用）
+    return jsonEncode(tt);
   }
 
   String _plainText() {
@@ -404,15 +456,28 @@ class _EditorPageState extends State<EditorPage> {
               ),
             ),
             Divider(height: 1, color: p.border),
-            // 正文
+            // 正文 + 移动端格式工具栏（随键盘显隐）
             Expanded(
-              child: AppFlowyEditor(
+              child: MobileToolbarV2(
                 editorState: es,
-                editorStyle: const EditorStyle.mobile(),
-                blockComponentBuilders: {
-                  ...standardBlockComponentBuilderMap,
-                  CodeBlockKeys.type: CodeBlockComponentBuilder(),
-                },
+                toolbarItems: [
+                  textDecorationMobileToolbarItem, // 加粗/斜体/下划线/删除线/行内代码
+                  headingMobileToolbarItem,
+                  listMobileToolbarItem, // 无序/有序
+                  todoMobileToolbarItem, // 待办（自定义）
+                  quoteMobileToolbarItem,
+                  codeMobileToolbarItem, // 代码块
+                  linkMobileToolbarItem,
+                  imageMobileToolbarItem, // 图片：选图/压缩/上传/插入
+                ],
+                child: AppFlowyEditor(
+                  editorState: es,
+                  editorStyle: const EditorStyle.mobile(),
+                  blockComponentBuilders: {
+                    ...standardBlockComponentBuilderMap,
+                    CodeBlockKeys.type: CodeBlockComponentBuilder(),
+                  },
+                ),
               ),
             ),
             if (errorMsg != null)

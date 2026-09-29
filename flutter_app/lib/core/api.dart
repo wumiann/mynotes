@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models.dart';
@@ -188,6 +189,37 @@ class Api {
       (await _req('GET', '/api/stats')) as Map<String, dynamic>;
 
   Future<void> logoutOthers() async => _req('POST', '/api/auth/logout-others');
+
+// ---------- 附件 ----------
+  /// 下载附件字节（/a/xxx，带鉴权；imgcache 用）
+  Future<List<int>> getAttachmentBytes(String path) async {
+    if (_baseUrl == null) throw ApiError(0, '未配置服务器地址');
+    final uri = Uri.parse('$_baseUrl$path');
+    final req = http.Request('GET', uri)
+      ..headers.addAll({
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      });
+    final res = await _client.send(req).then(http.Response.fromStream).timeout(const Duration(seconds: 20));
+    if (res.statusCode != 200) throw ApiError(res.statusCode, '附件下载失败');
+    return res.bodyBytes;
+  }
+
+  /// 上传图片（multipart）→ { url: '/a/xxx' }
+  Future<String> uploadAttachment(List<int> bytes, String filename, String mime) async {
+    if (_baseUrl == null) throw ApiError(0, '未配置服务器地址');
+    final uri = Uri.parse('$_baseUrl/api/attachments');
+    final req = http.MultipartRequest('POST', uri)
+      ..headers.addAll({if (_token != null) 'Authorization': 'Bearer $_token'})
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename, contentType: MediaType.parse(mime)));
+    final res = await _client.send(req).then(http.Response.fromStream).timeout(const Duration(seconds: 30));
+    final data = res.statusCode >= 400
+        ? <String, dynamic>{}
+        : jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    if (res.statusCode >= 400) {
+      throw ApiError(res.statusCode, (data['error'] as String?) ?? '上传失败(${res.statusCode})');
+    }
+    return (data['url'] as String?) ?? '';
+  }
 }
 
 final api = Api();
