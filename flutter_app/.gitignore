@@ -59,3 +59,7 @@ flutter_app/third_party/appflowy_editor/.dart_tool/
 # 签名密钥（不入库）
 android/key.properties
 android/app/mynotes-release.jks
+
+# APK 构建产物（发布走 Release 资产）
+flutter_app/MyNotes-flutter-release.apk
+flutter_app/build/

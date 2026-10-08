@@ -13,8 +13,9 @@ import '../core/sync.dart';
 import 'editor_page.dart';
 
 class NoteListPage extends StatefulWidget {
-  const NoteListPage({super.key, required this.onOpenNote, required this.onOpenCard});
+  const NoteListPage({super.key, required this.onOpenNote, required this.onOpenCard, this.onMenu});
   final ValueChanged<String> onOpenNote;
+  final VoidCallback? onMenu; // 打开外层抽屉（内层 Scaffold 挡了自动汉堡）
   final ValueChanged<String> onOpenCard; // 卡片类型笔记走卡片编辑页
 
   @override
@@ -97,6 +98,13 @@ class _NoteListPageState extends State<NoteListPage> {
     return Scaffold(
       backgroundColor: p.bg,
       appBar: AppBar(
+        leading: widget.onMenu != null
+            ? IconButton(
+                tooltip: '菜单',
+                icon: const Icon(Icons.menu),
+                onPressed: widget.onMenu,
+              )
+            : null,
         title: TextField(
           onChanged: _onSearchChanged,
           enabled: !isTrash,

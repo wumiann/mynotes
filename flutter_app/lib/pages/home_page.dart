@@ -17,6 +17,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   // null=列表；'new'=新建文本；'new-card'=新建卡片；其他=笔记id
   String? _openNoteId;
 
@@ -41,6 +42,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: paletteOf(context).bg,
       drawer: const AppDrawer(),
       body: AnimatedSwitcher(
@@ -53,7 +55,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildChild() {
     final id = _openNoteId;
     if (id == null) {
-      return NoteListPage(key: const ValueKey('list'), onOpenNote: _openNote, onOpenCard: _openCard);
+      return NoteListPage(key: const ValueKey('list'), onOpenNote: _openNote, onOpenCard: _openCard, onMenu: () => _scaffoldKey.currentState?.openDrawer());
     }
     if (id.startsWith('card:')) {
       final cardId = id.substring(5);
