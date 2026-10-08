@@ -1,8 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- INTERNET 权限必须在 main 里声明：release/profile 包不含 debug 的 manifest，
+         缺失时 release 包所有网络请求直接失败（表现为"网络错误"） -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="mynotes"
+        android:label="MyNotes"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
