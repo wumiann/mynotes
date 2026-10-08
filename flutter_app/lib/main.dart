@@ -35,12 +35,15 @@ class _MyNotesAppState extends State<MyNotesApp> {
   Future<void> _boot() async {
     await api.loadSaved();
     if (api.configured) {
-      try {
-        store.settings = await api.getSettings();
-      } catch (_) {}
-      _applyTheme(store.settings.themeMode);
+      // 本地优先：令牌存在即进入主界面（本地缓存立即可用），网络全异步不阻塞启动。
+      // 服务不可达时曾卡 15 秒转圈（getSettings 超时）——绝不 await 网络。
       store.authed = true;
-      bootSync(); // 本地优先同步：全量拉取 + 60s 周期 + 前台切换
+      bootSync();
+      // 设置在线拉取，取回后回填主题（失败用本地默认）
+      api.getSettings().then((s) {
+        store.settings = s;
+        store.notifyListeners();
+      }).catchError((_) {});
     }
     setState(() => _booted = true);
   }
