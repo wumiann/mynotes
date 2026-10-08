@@ -466,8 +466,7 @@ class _EditorPageState extends State<EditorPage> {
                   listMobileToolbarItem, // 无序/有序
                   todoMobileToolbarItem, // 待办（自定义）
                   quoteMobileToolbarItem,
-                  codeMobileToolbarItem, // 代码块
-                  linkMobileToolbarItem,
+                  // 代码块/超链接按钮不上工具栏：手机上用处小，已有内容仍正常渲染
                   imageMobileToolbarItem, // 图片：选图/压缩/上传/插入
                 ],
                 child: AppFlowyEditor(

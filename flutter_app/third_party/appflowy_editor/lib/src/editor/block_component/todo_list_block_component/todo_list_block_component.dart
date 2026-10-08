@@ -153,7 +153,9 @@ class _TodoListBlockComponentWidgetState
       width: double.infinity,
       alignment: alignment,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // center 对齐：图标容器(22)略小于行框(24)，顶对齐会让复选框浮在文字上沿
+        // （视觉上框比字高半截）；单行待办居中后框与文字视觉重心一致
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         textDirection: textDirection,
@@ -295,7 +297,8 @@ class _TodoListIcon extends StatelessWidget {
         child: Container(
           constraints: const BoxConstraints(minWidth: 26, minHeight: 22) *
               textScaleFactor,
-          padding: const EdgeInsets.only(right: 4.0),
+          // top:1 补 CJK 字形在行框内的度量偏移（约 1 逻辑像素），框与文字视觉重心才真正居中
+          padding: const EdgeInsets.only(right: 4.0, top: 1.0),
           child: EditorSvg(
             width: 22,
             height: 22,
