@@ -55,6 +55,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -103,3 +104,10 @@ dependency_overrides:
     path: third_party/appflowy_editor
   # appflowy_editor 依赖的旧版 compileSdk 31，与 androidx 新版要求不兼容
   keyboard_height_plugin: 0.3.0
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "../web/public/icons/icon-512.png"
+  adaptive_icon_background: "#2C7BE5"
+  adaptive_icon_foreground: "../web/public/icons/icon-512.png"

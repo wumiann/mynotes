@@ -55,3 +55,7 @@ test/fixtures/
 flutter_app/android/build/
 flutter_app/android/.gradle/
 flutter_app/third_party/appflowy_editor/.dart_tool/
+
+# 签名密钥（不入库）
+android/key.properties
+android/app/mynotes-release.jks

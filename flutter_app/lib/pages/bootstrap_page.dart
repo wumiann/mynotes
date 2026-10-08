@@ -24,8 +24,11 @@ class _BootstrapPageState extends State<BootstrapPage> {
     }
     if (!addr.startsWith('http://') && !addr.startsWith('https://')) {
       addr = 'http://$addr';
-      _controller.text = addr;
     }
+    // 免端口输入：无冒号时默认 8322（MyNotes 标准端口）
+    final hostPart = addr.replaceFirst(RegExp('^https?://'), '');
+    if (!hostPart.contains(':')) addr = '$addr:8322';
+    _controller.text = addr;
     setState(() {
       busy = true;
       error = null;
