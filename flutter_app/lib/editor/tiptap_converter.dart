@@ -23,6 +23,8 @@ Map<String, dynamic> tiptapToAppflowy(Map<String, dynamic> doc) {
   for (final node in doc['content'] as List? ?? []) {
     children.addAll(_ttToAfList(node as Map<String, dynamic>));
   }
+  // 空文档补一个空段落：AppFlowy 对零子节点的页面不渲染任何内容（新建笔记传空 doc 会整页空白）
+  if (children.isEmpty) children.add(_afBlock('paragraph', delta: []));
   return {'type': 'page', 'children': children};
 }
 

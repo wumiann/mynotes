@@ -48,6 +48,8 @@ class AppState with ChangeNotifier {
     activeGroupId = groupId;
     activeTag = tag;
     notifyListeners();
+    // 列表数据按视图在本地过滤，切视图必须重载（store.notes 仍是旧视图的缓存）
+    refreshNotes().catchError((_) {});
   }
 }
 

@@ -85,13 +85,15 @@ class _MyNotesAppState extends State<MyNotesApp> {
               animation: store,
               builder: (context, _) {
                 if (!store.authed) {
-                  if (!api.configured) return BootstrapPage(onDone: () => setState(() {}));
+                  if (!api.hasServer) return BootstrapPage(onDone: () => setState(() {}));
                   return LoginPage(onLoggedIn: () {
                     store.authed = true;
                     store.notifyListeners();
                   });
                 }
-                return const HomePage();
+                // 不能加 const：常量组件会让 AnimatedBuilder 的重建整棵子树短路，
+                // store 通知全部被吞（表现为列表转圈不停、切视图不刷新）
+                return HomePage();
               },
             ),
     );

@@ -28,6 +28,8 @@ class Api {
   String? get baseUrl => _baseUrl;
   String? get username => _username;
   bool get configured => _baseUrl != null && _token != null;
+  /// 引导完成（服务器地址已保存）：决定显示引导页还是登录页
+  bool get hasServer => _baseUrl != null;
 
   static const _kBase = 'mynotes-server-addr';
   static const _kToken = 'mynotes-token';
