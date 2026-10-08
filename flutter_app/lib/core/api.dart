@@ -75,7 +75,7 @@ class Api {
               ..body = body != null ? jsonEncode(body) : '')
         .then(http.Response.fromStream)
         .then((r) {
-      debugPrint('API $method $path -> ${r.statusCode}');
+      print('API $method $path -> ${r.statusCode}');
       return r;
     })
         .timeout(Duration(seconds: timeoutSec ?? 15));

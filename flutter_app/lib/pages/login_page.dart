@@ -1,6 +1,7 @@
 // 登录/首建账号页：零知识派生（PBKDF2 600k，转圈期间不阻塞提示）
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -46,10 +47,30 @@ class _LoginPageState extends State<LoginPage> {
           'kdfSalt2': salt2,
         });
       }
+      print('LOGIN: step1 username=$username len=${username.length}');
       final salts = await api.getSalts(username);
-      final authKey = await Vault.instance.deriveHex(password, salts['kdfSalt1'] as String);
+      print('LOGIN: step2 salts=' + salts.toString());
+      final salt1 = salts['kdfSalt1'];
+      if (salt1 is! String || (salt1 as String).isEmpty) {
+        setState(() {
+          busy = false;
+          error = '服务器响应异常（salts=$salts）';
+        });
+        return;
+      }
+      final authKey = await Vault.instance.deriveHex(password, salt1);
+      print('LOGIN: step3 derived');
       final res = await api.login(username, authKey);
-      await api.saveAuth(res['token'] as String? ?? '', username);
+      print('LOGIN: step4 login ok res=' + res.toString());
+      final token = res['token'];
+      if (token is! String) {
+        setState(() {
+          busy = false;
+          error = '登录响应异常（$res）';
+        });
+        return;
+      }
+      await api.saveAuth(token, username);
       widget.onLoggedIn();
     } on ApiError catch (e) {
       // 404 = 无账号 → 转创建模式
@@ -65,7 +86,8 @@ class _LoginPageState extends State<LoginPage> {
         busy = false;
         error = e.message;
       });
-    } catch (e) {
+    } catch (e, st) {
+      print('LOGIN_ERR: $e -- $st');
       setState(() {
         busy = false;
         error = '登录失败：$e';
