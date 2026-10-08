@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
+import '../core/app_theme.dart';
 import '../core/crypto.dart';
 
 class LoginPage extends StatefulWidget {
@@ -104,6 +105,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final p = paletteOf(context);
     return Scaffold(
       appBar: AppBar(title: Text(_needSetup ? '创建账号' : '登录')),
       body: SafeArea(
@@ -114,6 +116,25 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 品牌头：tonal 容器图标 + 字标 + 副标题
+                Column(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                          color: p.primaryWeak, borderRadius: BorderRadius.circular(18)),
+                      child: Icon(Icons.bookmark_rounded, size: 34, color: p.primary),
+                    ),
+                    const SizedBox(height: 14),
+                    Text('MyNotes',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: p.text)),
+                    const SizedBox(height: 4),
+                    Text('自托管 · 端到端加密的个人笔记',
+                        style: TextStyle(fontSize: 12.5, color: p.muted)),
+                  ],
+                ),
+                const SizedBox(height: 26),
                 TextField(
                   controller: _user,
                   enabled: !busy,
@@ -130,6 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                   onPressed: busy ? null : _submit,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),

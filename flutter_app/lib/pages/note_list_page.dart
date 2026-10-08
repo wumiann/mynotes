@@ -115,7 +115,9 @@ class _NoteListPageState extends State<NoteListPage> {
             contentPadding: EdgeInsets.zero,
             filled: true,
             fillColor: p.panel2,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            border: _searchBorder(p.border),
+            enabledBorder: _searchBorder(p.border),
+            focusedBorder: _searchBorder(p.primary, show: true),
           ),
         ),
         actions: [
@@ -230,17 +232,45 @@ class _EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = paletteOf(context);
+    final (icon, text) = isTrash
+        ? (Icons.delete_outline, '回收站为空')
+        : store.search.isNotEmpty
+            ? (Icons.search_off, '没有匹配的笔记')
+            : (Icons.note_alt_outlined, '暂无笔记，点右上角新建');
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(isTrash ? '🗑️' : store.search.isNotEmpty ? '🔍' : '🗒️', style: const TextStyle(fontSize: 32)),
-          const SizedBox(height: 10),
-          Text(
-            isTrash ? '回收站为空' : store.search.isNotEmpty ? '没有匹配的笔记' : '暂无笔记，点击 ＋ 新建',
-            style: TextStyle(color: p.muted),
+          // tonal 圆底图标：替代原来的 emoji，浅暗两套主题自动适配
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(color: p.chip, shape: BoxShape.circle),
+            child: Icon(icon, size: 34, color: p.muted),
           ),
+          const SizedBox(height: 14),
+          Text(text, style: TextStyle(color: p.muted, fontSize: 13.5)),
         ],
+      ),
+    );
+  }
+}
+
+/// 卡片右下角的文字操作（删除/恢复等）：加大触控区 + 按压水波纹
+class _CardAction extends StatelessWidget {
+  const _CardAction({required this.label, required this.color, required this.onTap});
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Text(label, style: TextStyle(color: color, fontSize: 12, height: 1.3)),
       ),
     );
   }
@@ -270,79 +300,76 @@ class _NoteCard extends StatelessWidget {
         : isCard
             ? '未命名卡片'
             : (note.excerpt.isNotEmpty ? note.excerpt.substring(0, note.excerpt.length > 30 ? 30 : note.excerpt.length) : '无标题');
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-        decoration: BoxDecoration(
-          color: p.panel,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: const Color(0x0A101828), blurRadius: 2, offset: const Offset(0, 1))],
+    // Material+InkWell：按压有水波纹反馈（原来 GestureDetector 无任何按压态）
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: p.panel,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.rCard),
+          side: BorderSide(color: p.border),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (note.pinned) ...[
-                  Icon(Icons.star, size: 14, color: AppColors.accentOrange),
-                  const SizedBox(width: 4),
+                Row(
+                  children: [
+                    if (note.pinned) ...[
+                      const Icon(Icons.star, size: 14, color: AppColors.accentOrange),
+                      const SizedBox(width: 4),
+                    ],
+                    if (isCard) ...[
+                      Icon(note.enc ? Icons.lock : Icons.lock_open, size: 13, color: p.muted),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Text(title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: p.text, fontSize: 15, height: 1.4)),
+                    ),
+                  ],
+                ),
+                if (note.plainText.isNotEmpty || isCard) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    isCard
+                        ? (note.enc ? (store.cardExcerpts[note.id] ?? '解锁后查看') : _plainCardExcerpt(note))
+                        : note.excerpt,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.5),
+                  ),
                 ],
-                if (isCard) ...[
-                  Icon(note.enc ? Icons.lock : Icons.lock_open, size: 13, color: p.muted),
-                  const SizedBox(width: 4),
-                ],
-                Expanded(
-                  child: Text(title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontWeight: FontWeight.w600, color: p.text, fontSize: 14.5)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(fmtTime(note.updatedAt), style: TextStyle(color: p.muted, fontSize: 12)),
+                    const SizedBox(width: 7),
+                    for (final t in note.tags.take(3))
+                      Container(
+                        margin: const EdgeInsets.only(right: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(AppDimens.rPill)),
+                        child: Text(t, style: TextStyle(color: p.muted, fontSize: 11, height: 1.3)),
+                      ),
+                    const Spacer(),
+                    if (isTrash) ...[
+                      _CardAction(label: '恢复', color: p.primary, onTap: onRestore),
+                      const SizedBox(width: 6),
+                      _CardAction(label: '彻底删除', color: p.danger, onTap: () => _purgeConfirm(context)),
+                    ] else
+                      _CardAction(label: '删除', color: p.muted, onTap: onDelete),
+                  ],
                 ),
               ],
             ),
-            if (note.plainText.isNotEmpty || isCard) ...[
-              const SizedBox(height: 3),
-              Text(
-                isCard
-                    ? (note.enc ? (store.cardExcerpts[note.id] ?? '解锁后查看') : _plainCardExcerpt(note))
-                    : note.excerpt,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: p.muted, fontSize: 12.5, height: 1.5),
-              ),
-            ],
-            const SizedBox(height: 7),
-            Row(
-              children: [
-                Text(fmtTime(note.updatedAt), style: TextStyle(color: p.muted, fontSize: 11.5)),
-                const SizedBox(width: 6),
-                for (final t in note.tags.take(3))
-                  Container(
-                    margin: const EdgeInsets.only(right: 5),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-                    decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(999)),
-                    child: Text(t, style: TextStyle(color: p.muted, fontSize: 11)),
-                  ),
-                const Spacer(),
-                if (isTrash) ...[
-                  GestureDetector(
-                    onTap: onRestore,
-                    child: Text('恢复', style: TextStyle(color: p.primary, fontSize: 12)),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () => _purgeConfirm(context),
-                    child: Text('彻底删除', style: TextStyle(color: p.danger, fontSize: 12)),
-                  ),
-                ] else
-                  GestureDetector(
-                    onTap: onDelete,
-                    child: Text('删除', style: TextStyle(color: p.muted, fontSize: 12)),
-                  ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -385,3 +412,8 @@ String _plainCardExcerpt(Note n) {
     return n.excerpt;
   }
 }
+
+/// 搜索框边框：平时无边框纯填充，聚焦时主题色描边（圆角胶囊）
+OutlineInputBorder _searchBorder(Color color, {bool show = false}) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(AppDimens.rField + 2),
+    borderSide: show ? BorderSide(color: color) : BorderSide.none);

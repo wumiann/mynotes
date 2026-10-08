@@ -152,7 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _card(Palette p, Widget child) => Container(
         decoration: BoxDecoration(
           color: p.panel,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimens.rCard),
           border: Border.all(color: p.border),
         ),
         child: child,

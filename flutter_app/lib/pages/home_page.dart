@@ -86,14 +86,22 @@ class AppDrawer extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 品牌
+            // 品牌：tonal 圆角容器图标 + 字标
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Row(
                 children: [
-                  Icon(Icons.bookmark_outlined, size: 22, color: p.primary),
-                  const SizedBox(width: 8),
-                  Text('MyNotes', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: p.text)),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                        color: p.primaryWeak, borderRadius: BorderRadius.circular(AppDimens.rField)),
+                    child: Icon(Icons.bookmark_rounded, size: 21, color: p.primary),
+                  ),
+                  const SizedBox(width: 11),
+                  Text('MyNotes',
+                      style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700, color: p.text, letterSpacing: 0.2)),
                 ],
               ),
             ),
@@ -149,9 +157,15 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
             Divider(height: 1, color: p.border),
-            // 底部：解锁状态 + 用户名 + 登出
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+            // 底部：解锁状态 + 用户名 + 登出（卡片化容器）
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: p.panel2,
+                borderRadius: BorderRadius.circular(AppDimens.rCard),
+                border: Border.all(color: p.border),
+              ),
               child: Row(
                 children: [
                   IconButton(
@@ -171,13 +185,14 @@ class AppDrawer extends StatelessWidget {
                   IconButton(
                     tooltip: '设置',
                     icon: Icon(Icons.settings_outlined, size: 19, color: p.muted),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SettingsPage()),
-                    ),
+                    onPressed: () => Navigator.of(context).push(fadeUpRoute(const SettingsPage())),
                   ),
                   TextButton(
                     onPressed: () async {
-                      await api.logout();
+                      // 服务端登出失败也要完成本地登出（clearAuth 在 logout 的 finally 里）
+                      try {
+                        await api.logout();
+                      } catch (_) {}
                       lockVault();
                       store.authed = false;
                       store.notifyListeners();
@@ -219,8 +234,10 @@ class AppDrawer extends StatelessWidget {
   Widget _section(BuildContext context, String title) {
     final p = paletteOf(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
-      child: Text(title, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: p.muted)),
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
+      child: Text(title,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w600, color: p.muted, letterSpacing: 0.6)),
     );
   }
 
@@ -232,19 +249,19 @@ class AppDrawer extends StatelessWidget {
       padding: EdgeInsets.only(left: indent - 12),
       child: ListTile(
         dense: true,
-        visualDensity: VisualDensity.compact,
-        leading: Icon(icon, size: 18, color: selected ? p.primary : p.muted),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        leading: Icon(icon, size: 20, color: selected ? p.primary : p.muted),
         title: Text(label,
             style: TextStyle(
-                fontSize: 13.5,
+                fontSize: 14,
                 color: selected ? p.primary : p.text,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
         trailing: trailing != null
-            ? Text(trailing, style: TextStyle(color: p.muted, fontSize: 11.5))
+            ? Text(trailing, style: TextStyle(color: p.muted, fontSize: 12))
             : null,
         selected: selected,
         selectedTileColor: p.primaryWeak,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimens.rField)),
         onTap: () {
           onTap();
           refreshNotes();

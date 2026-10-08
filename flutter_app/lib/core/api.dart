@@ -68,7 +68,9 @@ class Api {
     if (_baseUrl == null) throw ApiError(0, '未配置服务器地址');
     final uri = Uri.parse('$_baseUrl$path');
     final headers = <String, String>{
-      'Content-Type': 'application/json',
+      // 只在有 body 时声明 JSON：无 body 的 POST 带 JSON 头会触发
+      // Fastify 空 JSON 解析错误（400），logout 就是这么挂的
+      if (body != null) 'Content-Type': 'application/json',
       if (_token != null) 'Authorization': 'Bearer $_token',
     };
     final res = await _client

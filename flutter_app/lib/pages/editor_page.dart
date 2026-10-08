@@ -255,7 +255,7 @@ class _EditorPageState extends State<EditorPage> {
     // 打开历史前先把未保存内容落库（对齐 Web 行为）
     await _save();
     final restored = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => HistoryPage(noteId: widget.noteId, noteTitle: _title.text)),
+      fadeUpRoute(HistoryPage(noteId: widget.noteId, noteTitle: _title.text)),
     );
     if (restored == true) {
       // 恢复后：立即同步拉取最新，并重载当前页
@@ -348,12 +348,12 @@ class _EditorPageState extends State<EditorPage> {
           title: TextField(
             controller: _title,
             onChanged: (_) => _markDirty(),
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: p.text),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: p.text, height: 1.4),
             decoration: InputDecoration(
               hintText: '标题',
               border: InputBorder.none,
               filled: false,
-              hintStyle: TextStyle(color: p.muted, fontWeight: FontWeight.w400),
+              hintStyle: TextStyle(color: p.muted.withValues(alpha: 0.7), fontWeight: FontWeight.w400, fontSize: 17),
             ),
           ),
           actions: [
@@ -460,6 +460,16 @@ class _EditorPageState extends State<EditorPage> {
             Expanded(
               child: MobileToolbarV2(
                 editorState: es,
+                // 工具栏配色与全局主题对齐（默认白底黑字，暗色下刺眼）
+                backgroundColor: p.panel,
+                foregroundColor: p.muted,
+                iconColor: p.text,
+                itemHighlightColor: p.primary,
+                itemOutlineColor: p.border,
+                outlineColor: p.border,
+                tabBarSelectedBackgroundColor: p.chip,
+                tabBarSelectedForegroundColor: p.text,
+                primaryColor: p.primary,
                 toolbarItems: [
                   textDecorationMobileToolbarItem, // 加粗/斜体/下划线/删除线/行内代码
                   headingMobileToolbarItem,
@@ -471,7 +481,18 @@ class _EditorPageState extends State<EditorPage> {
                 ],
                 child: AppFlowyEditor(
                   editorState: es,
-                  editorStyle: const EditorStyle.mobile(),
+                  // 编辑区观感：光标/选区/拖拽手柄走主题色，正文 16/1.6 行高
+                  // （vendored 默认青色光标+纯黑文字，暗色主题下文字不可读）
+                  editorStyle: EditorStyle.mobile(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    cursorColor: p.primary,
+                    dragHandleColor: p.primary,
+                    selectionColor: p.primary.withValues(alpha: 0.18),
+                    textStyleConfiguration: TextStyleConfiguration(
+                      text: TextStyle(fontSize: 16, height: 1.6, color: p.text),
+                      href: TextStyle(color: p.primary, decoration: TextDecoration.underline),
+                    ),
+                  ),
                   blockComponentBuilders: {
                     ...standardBlockComponentBuilderMap,
                     CodeBlockKeys.type: CodeBlockComponentBuilder(),

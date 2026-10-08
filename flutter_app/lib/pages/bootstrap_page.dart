@@ -56,12 +56,20 @@ class _BootstrapPageState extends State<BootstrapPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.bookmark_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 12),
+                // 品牌头：tonal 圆角容器图标（与登录页/抽屉同一气质）
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Icon(Icons.bookmark_rounded, size: 38, color: Theme.of(context).colorScheme.primary),
+                ),
+                const SizedBox(height: 14),
                 Text('MyNotes', textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                Text('自托管个人笔记', textAlign: TextAlign.center,
+                Text('自托管个人笔记 · 局域网直连', textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).hintColor)),
                 const SizedBox(height: 32),
                 TextField(
