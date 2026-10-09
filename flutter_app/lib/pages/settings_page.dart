@@ -19,6 +19,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   Map<String, dynamic>? stats;
+  bool statsError = false;
   bool busy = false;
 
   @override
@@ -31,8 +32,11 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!store.authed) return; // 未登录：统计需联网，显示占位
     try {
       stats = await api.getStats();
-      setState(() {});
-    } catch (_) {}
+      statsError = false;
+    } catch (_) {
+      statsError = true;
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _setTheme(String mode) async {
@@ -171,7 +175,12 @@ class _SettingsPageState extends State<SettingsPage> {
             )),
           ],
           _section(p, '数据'),
-          _card(p, stats == null
+          _card(p, statsError
+              ? ListTile(dense: true, leading: Icon(Icons.wifi_off, size: 18, color: p.muted),
+                  title: const Text('统计加载失败', style: TextStyle(fontSize: 13)),
+                  subtitle: const Text('需要能连上服务器，点击重试', style: TextStyle(fontSize: 11.5)),
+                  onTap: _loadStats)
+              : stats == null
               ? Padding(padding: const EdgeInsets.all(14), child: Text(
                   store.authed ? '统计加载中…（需联网）' : '配置同步后可查看服务器统计',
                   style: const TextStyle(fontSize: 13)))
@@ -180,10 +189,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _statRow(p, '笔记', '${stats!['notes'] ?? '?'} 条'),
-                      _statRow(p, '分组', '${stats!['groups'] ?? '?'} 个'),
-                      _statRow(p, '标签', '${stats!['tags'] ?? '?'} 个'),
-                      _statRow(p, '附件', '${stats!['attachments'] ?? '?'} 个'),
+                      // 服务端字段为驼峰（noteCount/groupCount/tagCount/attachmentCount）
+                      _statRow(p, '笔记', '${stats!['noteCount'] ?? '?'} 条'),
+                      _statRow(p, '回收站', '${stats!['trashCount'] ?? '?'} 条'),
+                      _statRow(p, '分组', '${stats!['groupCount'] ?? '?'} 个'),
+                      _statRow(p, '标签', '${stats!['tagCount'] ?? '?'} 个'),
+                      _statRow(p, '附件', '${stats!['attachmentCount'] ?? '?'} 个'),
                     ],
                   ),
                 )),
