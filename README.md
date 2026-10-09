@@ -29,7 +29,7 @@
 docker load -i mynotes-docker-arm64.tar
 ```
 
-项目内的 `docker-compose.yml` 默认使用加载的镜像（标签为 `mynotes:0.2.8-arm64` / `mynotes:0.2.8-amd64`，按实际加载的标签调整），直接：
+项目内的 `docker-compose.yml` 默认使用加载的镜像（标签随版本变化，当前 v0.2.14 为 `mynotes:0.2.14-arm64` / `mynotes:0.2.14-amd64`，与 docker load 后的标签一致即可），直接：
 
 ```bash
 docker compose up -d
@@ -69,13 +69,16 @@ docker compose -f docker-compose.build.yml up -d --build
 
 浏览器直接访问 `http://<NAS-IP>:8322`。支持 PWA：浏览器菜单 → 添加到主屏幕，可离线缓存静态资源。
 
-### 安卓 App
+### 安卓 App（Flutter 原生，本地优先）
 
-从 [Releases](https://github.com/wumiann/mynotes/releases) 下载 `MyNotes-debug.apk` 安装，首次打开输入服务器地址 + 账号密码：
+从 [Releases](https://github.com/wumiann/mynotes/releases) 下载 `MyNotes-release.apk` 安装。**打开即用，无需先配置服务器**——数据仅保存在本机，离线完整可用：
 
-- **离线可用**：数据本地缓存，断网可看可改，联网自动同步
-- 顶部按钮：🔒 新建加密卡片 / 🔓 新建明文卡片 / ＋ 新建笔记；侧栏底部图标显示解锁状态，点击可锁定/解锁
-- 换服务器地址：在侧栏点锁定图标旁的设置，或登出后重新输入
+- **配置同步**（可选）：设置 → 同步 → 配置向导（地址探活 → 登录 → 首次同步策略）。策略三选一：
+  - **合并（推荐）**：本地新增上传、服务器数据下载，同一条两端都改过时保留较新版本（被覆盖版本进 Web 版历史）
+  - 仅上传（本地为准）/ 仅下载（服务器为准，会清空本机未同步数据，有二次确认）
+- **NAS 无公网 IP 也能用**：连不上服务器时照常读写，变更存在本地队列；回到局域网 / VPN 后自动补推合并（60 秒周期 + 打开应用时 + 手动点同步徽标）
+- 顶部按钮：新建笔记 / 新建卡片（图标随解锁状态变化）；加密卡片需配置同步并登录后使用
+- 更换服务器 / 断开同步（本机数据保留）：设置 → 同步
 
 ### 备份与还原
 
@@ -106,9 +109,10 @@ docker compose -f docker-compose.build.yml up -d --build
 
 **安卓 App（离线本地优先）**：
 
-- 登录后全量同步到本机，此后断网也能浏览/编辑
-- 联网时自动同步：有改动约 2 秒后推送、每 60 秒拉取、切回前台立即同步
-- 列表顶部徽标显示同步状态：✓ 已同步 / ⏳N 条待同步 / ⛔ 离线，点击可手动同步
+- 未配置服务器时即为纯本地笔记，数据仅存本机；配置同步后首次按所选策略合并
+- 此后断网也能浏览/编辑；联网时自动同步：有改动约 2 秒后推送、每 60 秒合并拉取、切回前台立即同步
+- 长期离线产生的变更持久化在本地队列，恢复网络后自动补推合并，不会静默丢失
+- 列表顶部徽标显示同步状态：☁ 未配置同步 / ✓ 已同步 / ⏳N 条待同步 / ⛔ 离线，点击可手动同步
 - 需要联网的操作（离线时会有明确提示）：分组/标签管理、备份还原、DS Note 导入、修改主密码、上传图片
 
 **冲突处理**：两端同时修改同一条笔记时，后保存的一方胜出；被覆盖的内容会自动进入该笔记的版本历史，可在「历史」中查看 diff 找回，不会静默丢失。
@@ -124,17 +128,17 @@ pnpm dev:web      # 前端热更新 http://127.0.0.1:5173
 # 构建 + 冒烟测试
 pnpm build && pnpm smoke
 
-# 安卓 APK（需 JDK 17–21 与 Android SDK；镜像已内置）
-pnpm build:app
-cd android && gradlew.bat assembleDebug
-# 产物：android/app/build/outputs/apk/debug/app-debug.apk
+# 安卓 APK（Flutter 版，需 Flutter SDK 与 Android SDK）
+cd flutter_app
+flutter build apk --release
+# 产物：flutter_app/build/app/outputs/flutter-apk/app-release.apk
 ```
 
 ## 技术栈
 
 - **服务端**：Fastify + Node 内置 `node:sqlite`（无原生编译依赖）+ fflate
 - **前端**：Vue 3 + Vite + Tiptap
-- **安卓**：Capacitor 7（本地打包 + IndexedDB 离线缓存 + 同步引擎）
+- **安卓**：Flutter（sqflite 本地库 + 变更队列同步引擎，离线本地优先；编辑器为 AppFlowy，与 Web 端 Tiptap JSON 双向无损转换）
 - **安全**：零知识认证（PBKDF2 600k 派生）、卡片 AES-256-GCM 加密、登录限速、会话管理
 
 ## 安全说明
