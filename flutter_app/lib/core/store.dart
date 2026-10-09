@@ -26,6 +26,9 @@ class AppState with ChangeNotifier {
   bool authed = false;
   AppSettings settings = AppSettings();
 
+  // 全局字号缩放（设备级偏好，存本机 kv；1.0=标准）
+  double fontScale = 1.0;
+
   // 解锁后缓存：加密卡 id → 解密出的摘要（首套账号）
   Map<String, String> cardExcerpts = {};
 

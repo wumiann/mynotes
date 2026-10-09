@@ -52,6 +52,13 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (_) {}
   }
 
+  /// 全局字号（设备级偏好，存本机 kv）
+  Future<void> _setFontScale(double scale) async {
+    store.fontScale = scale;
+    store.notifyListeners();
+    await localdb.setKv('settings.fontScale', scale.toString());
+  }
+
   Future<void> _logoutOthers() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -156,7 +163,33 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           )),
           if (store.authed) ...[
-            _section(p, '账号'),
+            _section(p, '字号'),
+          _card(p, Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SegmentedButton<double>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 0.85, label: Text('小')),
+                    ButtonSegment(value: 1.0, label: Text('标准')),
+                    ButtonSegment(value: 1.15, label: Text('大')),
+                    ButtonSegment(value: 1.3, label: Text('特大')),
+                  ],
+                  selected: {store.fontScale},
+                  onSelectionChanged: (s) => _setFontScale(s.first),
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor: p.primaryWeak,
+                    selectedForegroundColor: p.primaryStrong,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('影响应用内全部文字，仅对本机生效', style: TextStyle(fontSize: 11.5, color: p.muted)),
+              ],
+            ),
+          )),
+          _section(p, '账号'),
             _card(p, Column(
               children: [
                 ListTile(

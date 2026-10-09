@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'core/api.dart';
 import 'core/app_theme.dart';
 import 'core/store.dart';
-import 'core/sync.dart';
+import 'core/sync.dart' show localdb, releaseSync, bootSync;
 import 'pages/home_page.dart';
 
 void main() {
@@ -32,6 +32,8 @@ class _MyNotesAppState extends State<MyNotesApp> {
 
   Future<void> _boot() async {
     await api.loadSaved();
+    // 全局字号（设备级偏好，存本机 kv）
+    store.fontScale = double.tryParse(await localdb.getKv('settings.fontScale') ?? '') ?? 1.0;
     if (api.configured) {
       // 令牌存在即视为已登录（历史语义）；本地缓存立即可用，同步全异步不阻塞启动
       store.authed = true;
@@ -78,6 +80,14 @@ class _MyNotesAppState extends State<MyNotesApp> {
       theme: buildAppTheme(Brightness.light),
       darkTheme: buildAppTheme(Brightness.dark),
       themeMode: _themeMode,
+      // 全局字号：用 textScaler 线性缩放全部文字（设置→字号，存本机 kv）
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(textScaler: TextScaler.linear(store.fontScale)),
+          child: child!,
+        );
+      },
       home: !_booted
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : AnimatedBuilder(
