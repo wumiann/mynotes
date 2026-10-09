@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/app_theme.dart';
 import '../core/store.dart';
+import '../core/sync.dart' show releaseSync;
 import 'card_editor_page.dart';
 import 'editor_page.dart';
+import 'login_page.dart';
 import 'note_list_page.dart';
 import 'settings_page.dart';
+import 'sync_setup_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -169,16 +172,20 @@ class AppDrawer extends StatelessWidget {
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: store.vaultUnlocked ? '已解锁，可创建查看加密笔记（点击锁定）' : '未解锁（点击输入主密码）',
+                    tooltip: !api.configured
+                        ? '本地模式：加密卡片需配置同步后使用'
+                        : store.vaultUnlocked ? '已解锁，可创建查看加密笔记（点击锁定）' : '未解锁（点击输入主密码）',
                     icon: Icon(
                       store.vaultUnlocked ? Icons.lock_open : Icons.lock,
                       size: 20,
-                      color: store.vaultUnlocked ? AppColors.accentOrange : p.muted,
+                      color: !api.configured
+                          ? p.muted.withValues(alpha: 0.5)
+                          : store.vaultUnlocked ? AppColors.accentOrange : p.muted,
                     ),
                     onPressed: () => _toggleVault(context),
                   ),
                   Expanded(
-                    child: Text(api.username ?? '',
+                    child: Text(api.username ?? (api.hasServer ? '未登录' : '本地模式'),
                         style: TextStyle(color: p.text, fontSize: 13.5, fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis),
                   ),
@@ -187,18 +194,33 @@ class AppDrawer extends StatelessWidget {
                     icon: Icon(Icons.settings_outlined, size: 19, color: p.muted),
                     onPressed: () => Navigator.of(context).push(fadeUpRoute(const SettingsPage())),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      // 服务端登出失败也要完成本地登出（clearAuth 在 logout 的 finally 里）
-                      try {
-                        await api.logout();
-                      } catch (_) {}
-                      lockVault();
-                      store.authed = false;
-                      store.notifyListeners();
-                    },
-                    child: const Text('登出'),
-                  ),
+                  if (!api.hasServer)
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(fadeUpRoute(const SyncSetupPage())),
+                      child: const Text('配置同步'),
+                    )
+                  else if (!store.authed)
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(fadeUpRoute(LoginPage(onLoggedIn: () {
+                        store.authed = true;
+                        releaseSync(); // 抽屉登录不在向导里，直接恢复正常同步
+                        store.notifyListeners();
+                      }))),
+                      child: const Text('登录'),
+                    )
+                  else
+                    TextButton(
+                      onPressed: () async {
+                        // 服务端登出失败也要完成本地登出（clearAuth 在 logout 的 finally 里）
+                        try {
+                          await api.logout();
+                        } catch (_) {}
+                        lockVault();
+                        store.authed = false;
+                        store.notifyListeners();
+                      },
+                      child: const Text('登出'),
+                    ),
                 ],
               ),
             ),
@@ -210,6 +232,11 @@ class AppDrawer extends StatelessWidget {
 
   /// 点击解锁状态图标：已解锁 → 锁定；未解锁 → 弹密码框
   Future<void> _toggleDrawerVault(BuildContext context) async {
+    if (!api.configured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('本地模式：加密卡片需配置同步服务器并登录后使用')));
+      return;
+    }
     if (store.vaultUnlocked) {
       lockVault();
       return;

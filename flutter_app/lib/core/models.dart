@@ -231,7 +231,8 @@ String fmtTime(String iso) {
   if (dt == null) return '';
   final now = DateTime.now();
   final diff = now.difference(dt);
-  if (diff.inMilliseconds < 0) return '';
+  // 设备时钟略慢于服务器时 diff 为负：clamp 为刚刚，不显示空
+  if (diff.inMilliseconds < 0) return '刚刚';
   if (diff.inMinutes < 1) return '刚刚';
   if (diff.inMinutes < 60) return '${diff.inMinutes} 分钟前';
   final today = DateTime(now.year, now.month, now.day);

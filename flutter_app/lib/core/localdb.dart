@@ -139,20 +139,36 @@ class LocalDb {
 
   Future<List<QueueOp>> allQueue() async {
     final rows = await (await db).query('queue', orderBy: 'seq ASC');
-    return rows
-        .map((r) => QueueOp(
-              id: r['id'] as int,
-              kind: r['kind'] as String,
-              noteId: r['note_id'] as String?,
-              payload: r['payload'] != null ? jsonDecode(r['payload'] as String) as Map<String, dynamic> : null,
-              groupId: r['group_id'] as String?,
-            ))
-        .toList();
+    return rows.map(_opFromRow).toList();
   }
 
   Future<void> dequeue(int id) async {
     await (await db).delete('queue', where: 'id = ?', whereArgs: [id]);
   }
+
+  /// 某笔记的待推送 op（合并时防重复入队）
+  Future<List<QueueOp>> queueForNote(String noteId) async {
+    final rows = await (await db).query('queue', where: 'note_id = ?', whereArgs: [noteId], orderBy: 'seq ASC');
+    return rows.map(_opFromRow).toList();
+  }
+
+  /// 清掉某笔记的全部待推送 op（合并判定服务器版本胜出后，本地 op 已过期）
+  Future<void> dequeueByNote(String noteId) async {
+    await (await db).delete('queue', where: 'note_id = ?', whereArgs: [noteId]);
+  }
+
+  /// 清空队列（「仅下载」策略：本地未同步变更一并作废）
+  Future<void> clearQueue() async {
+    await (await db).delete('queue');
+  }
+
+  QueueOp _opFromRow(Map<String, Object?> r) => QueueOp(
+        id: r['id'] as int,
+        kind: r['kind'] as String,
+        noteId: r['note_id'] as String?,
+        payload: r['payload'] != null ? jsonDecode(r['payload'] as String) as Map<String, dynamic> : null,
+        groupId: r['group_id'] as String?,
+      );
 
   Future<void> updateQueueNoteId(String oldId, String newId) async {
     await (await db).update('queue', {'note_id': newId}, where: 'note_id = ?', whereArgs: [oldId]);

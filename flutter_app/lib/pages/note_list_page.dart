@@ -11,6 +11,7 @@ import '../core/models.dart';
 import '../core/store.dart';
 import '../core/sync.dart';
 import 'editor_page.dart';
+import 'settings_page.dart';
 
 class NoteListPage extends StatefulWidget {
   const NoteListPage({super.key, required this.onOpenNote, required this.onOpenCard, this.onMenu});
@@ -121,49 +122,64 @@ class _NoteListPageState extends State<NoteListPage> {
           ),
         ),
         actions: [
-          // 同步徽标：✓已同步 / ⟳同步中 / ⏳N 待同步 / ⛔离线（点击立即同步）
+          // 同步状态徽标：未配置（本地模式）/ ✓已同步 / ⟳同步中 / ⏳N 待同步 / ⛔离线
           ListenableBuilder(
             listenable: syncState,
             builder: (context, _) {
               final Widget badge;
-              if (syncState.syncing) {
+              final String tooltip;
+              final VoidCallback onPressed;
+              if (!api.configured) {
+                badge = Icon(Icons.cloud_off_outlined, size: 18, color: p.muted);
+                tooltip = '未配置同步，数据仅保存在本机（点击去设置）';
+                onPressed = () => Navigator.of(context).push(fadeUpRoute(const SettingsPage()));
+              } else if (syncState.syncing) {
                 badge = SizedBox(
                   width: 16, height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2, color: p.primary),
                 );
+                tooltip = '同步中…';
+                onPressed = () {};
               } else if (syncState.pending > 0) {
                 badge = Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: p.primaryWeak, borderRadius: BorderRadius.circular(999)),
                   child: Text('${syncState.pending}', style: TextStyle(color: p.primary, fontSize: 11.5)),
                 );
+                tooltip = '${syncState.pending} 条待同步，点击立即同步';
+                onPressed = () => syncNow().catchError((_) {});
               } else if (syncState.online == false) {
                 badge = Icon(Icons.block, size: 18, color: p.danger);
+                tooltip = '离线模式，点击重试同步';
+                onPressed = () => syncNow().catchError((_) {});
               } else {
                 badge = Icon(Icons.check_circle_outline, size: 18, color: p.muted);
+                tooltip = '已同步，点击刷新';
+                onPressed = () => syncNow().catchError((_) {});
               }
-              return IconButton(
-                tooltip: syncState.pending > 0
-                    ? '${syncState.pending} 条待同步，点击立即同步'
-                    : syncState.online == false
-                        ? '离线模式，点击重试同步'
-                        : '已同步，点击刷新',
-                onPressed: () => syncNow().catchError((_) {}),
-                icon: badge,
-              );
+              return IconButton(tooltip: tooltip, onPressed: onPressed, icon: badge);
             },
           ),
           if (!isTrash) ...[
             // 新建密码卡片：单按钮双状态（对齐 Web 语义）——
             // 图标=将建出的卡片类型，与侧栏解锁状态刻意相反
             IconButton(
-              tooltip: store.vaultUnlocked ? '创建加密笔记' : '创建不加密笔记',
+              tooltip: !api.configured
+                  ? '本地模式：加密卡片需配置同步后使用'
+                  : store.vaultUnlocked ? '创建加密笔记' : '创建不加密笔记',
               icon: Icon(
                 store.vaultUnlocked ? Icons.lock : Icons.lock_open,
                 size: 20,
-                color: store.vaultUnlocked ? AppColors.accentOrange : p.text,
+                color: !api.configured ? p.muted.withValues(alpha: 0.5) : store.vaultUnlocked ? AppColors.accentOrange : p.text,
               ),
-              onPressed: () => widget.onOpenCard('new-card:${store.vaultUnlocked ? 'enc' : 'plain'}'),
+              onPressed: () {
+                if (!api.configured) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('加密卡片需配置同步服务器并登录后使用（普通卡片不受影响）')));
+                  return;
+                }
+                widget.onOpenCard('new-card:${store.vaultUnlocked ? 'enc' : 'plain'}');
+              },
             ),
             IconButton(
               tooltip: '新建笔记',
@@ -185,7 +201,9 @@ class _NoteListPageState extends State<NoteListPage> {
             child: store.loadingList && store.notes.isEmpty
                 ? Center(child: CircularProgressIndicator(color: p.primary))
                 : store.notes.isEmpty
-                    ? _EmptyView(isTrash: isTrash)
+                    ? _EmptyView(isTrash: isTrash, onConfigure: !api.configured
+                        ? () => Navigator.of(context).push(fadeUpRoute(const SettingsPage()))
+                        : null)
                     : RefreshIndicator(
                         color: p.primary,
                         onRefresh: () async {
@@ -227,16 +245,20 @@ class _NoteListPageState extends State<NoteListPage> {
 }
 
 class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.isTrash});
+  const _EmptyView({required this.isTrash, this.onConfigure});
   final bool isTrash;
+  final VoidCallback? onConfigure; // 未配置同步时提供「去配置」入口
   @override
   Widget build(BuildContext context) {
     final p = paletteOf(context);
+    final local = onConfigure != null;
     final (icon, text) = isTrash
         ? (Icons.delete_outline, '回收站为空')
         : store.search.isNotEmpty
             ? (Icons.search_off, '没有匹配的笔记')
-            : (Icons.note_alt_outlined, '暂无笔记，点右上角新建');
+            : local
+                ? (Icons.cloud_off_outlined, '笔记仅保存在本机')
+                : (Icons.note_alt_outlined, '暂无笔记，点右上角新建');
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -250,6 +272,16 @@ class _EmptyView extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(text, style: TextStyle(color: p.muted, fontSize: 13.5)),
+          if (local) ...[
+            const SizedBox(height: 6),
+            Text('配置同步后可与 Web 版互通',
+                style: TextStyle(color: p.muted.withValues(alpha: 0.8), fontSize: 12)),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onConfigure,
+              child: const Text('配置同步服务器'),
+            ),
+          ],
         ],
       ),
     );

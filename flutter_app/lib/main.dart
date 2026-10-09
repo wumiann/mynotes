@@ -6,9 +6,7 @@ import 'core/api.dart';
 import 'core/app_theme.dart';
 import 'core/store.dart';
 import 'core/sync.dart';
-import 'pages/bootstrap_page.dart';
 import 'pages/home_page.dart';
-import 'pages/login_page.dart';
 
 void main() {
   runApp(const MyNotesApp());
@@ -35,9 +33,9 @@ class _MyNotesAppState extends State<MyNotesApp> {
   Future<void> _boot() async {
     await api.loadSaved();
     if (api.configured) {
-      // 本地优先：令牌存在即进入主界面（本地缓存立即可用），网络全异步不阻塞启动。
-      // 服务不可达时曾卡 15 秒转圈（getSettings 超时）——绝不 await 网络。
+      // 令牌存在即视为已登录（历史语义）；本地缓存立即可用，同步全异步不阻塞启动
       store.authed = true;
+      releaseSync(); // 解除向导挂起（正常用户路径）
       bootSync();
       // 设置在线拉取，取回后回填主题（失败用本地默认）
       api.getSettings().then((s) {
@@ -45,6 +43,7 @@ class _MyNotesAppState extends State<MyNotesApp> {
         store.notifyListeners();
       }).catchError((_) {});
     }
+    // 未配置服务器 → 本地模式：直接进主界面（数据仅存本机，可在设置里配置同步）
     setState(() => _booted = true);
   }
 
@@ -84,13 +83,8 @@ class _MyNotesAppState extends State<MyNotesApp> {
           : AnimatedBuilder(
               animation: store,
               builder: (context, _) {
-                if (!store.authed) {
-                  if (!api.hasServer) return BootstrapPage(onDone: () => setState(() {}));
-                  return LoginPage(onLoggedIn: () {
-                    store.authed = true;
-                    store.notifyListeners();
-                  });
-                }
+                // 本地优先：无论是否配置服务器都直接进主界面；
+                // 未登录状态由设置页的同步区引导配置/登录
                 // 不能加 const：常量组件会让 AnimatedBuilder 的重建整棵子树短路，
                 // store 通知全部被吞（表现为列表转圈不停、切视图不刷新）
                 return HomePage();

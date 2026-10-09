@@ -73,6 +73,9 @@ class _LoginPageState extends State<LoginPage> {
       }
       await api.saveAuth(token, username);
       widget.onLoggedIn();
+      // 本页现在总被 push 使用（向导/设置/抽屉），登录成功后必须关闭自身，
+      // 否则调用方的 await Navigator.push 永远挂起（历史上作根路由靠外层切换，无此问题）
+      if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
     } on ApiError catch (e) {
       // 404 = 无账号 → 转创建模式
       if (e.status == 404 && !_needSetup) {
