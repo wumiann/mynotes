@@ -1,0 +1,8 @@
+{
+	"appId": "com.dell.mynotes",
+	"appName": "MyNotes",
+	"webDir": "www",
+	"android": {
+		"adjustMarginsForEdgeToEdge": "auto"
+	}
+}
