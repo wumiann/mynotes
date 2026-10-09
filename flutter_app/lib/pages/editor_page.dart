@@ -494,6 +494,7 @@ class _EditorPageState extends State<EditorPage> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
             // 头部与正文的分隔线（对齐左右留白）
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
