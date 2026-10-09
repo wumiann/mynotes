@@ -343,19 +343,11 @@ class _EditorPageState extends State<EditorPage> {
       },
       child: Scaffold(
         backgroundColor: p.bg,
+        // AppBar 瘦身为纯工具栏：标题移入内容区做大字排版，与页面同色融为一体
         appBar: AppBar(
+          backgroundColor: p.bg,
+          elevation: 0,
           leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: _close),
-          title: TextField(
-            controller: _title,
-            onChanged: (_) => _markDirty(),
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: p.text, height: 1.4),
-            decoration: InputDecoration(
-              hintText: '标题',
-              border: InputBorder.none,
-              filled: false,
-              hintStyle: TextStyle(color: p.muted.withValues(alpha: 0.7), fontWeight: FontWeight.w400, fontSize: 17),
-            ),
-          ),
           actions: [
             IconButton(
               tooltip: pinned ? '取消置顶' : '置顶',
@@ -382,13 +374,30 @@ class _EditorPageState extends State<EditorPage> {
         ),
         body: Column(
           children: [
-            // meta 行：标签 chips + 输入 + 分组下拉 + 保存状态
-            Container(
-              color: p.panel,
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+            // 文档头部：大标题 + 标签/分组 meta 行（无底色无分隔线，像正文的开头）
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  TextField(
+                    controller: _title,
+                    onChanged: (_) => _markDirty(),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: p.text, height: 1.35),
+                    decoration: InputDecoration(
+                      hintText: '添加标题',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      hintStyle: TextStyle(color: p.muted.withValues(alpha: 0.55), fontWeight: FontWeight.w700, fontSize: 22),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Wrap(
@@ -448,14 +457,12 @@ class _EditorPageState extends State<EditorPage> {
                           },
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      _saveStateWidget(p),
                     ],
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, color: p.border),
+            const SizedBox(height: 4),
             // 正文 + 移动端格式工具栏（随键盘显隐）
             Expanded(
               child: MobileToolbarV2(
@@ -484,7 +491,7 @@ class _EditorPageState extends State<EditorPage> {
                   // 编辑区观感：光标/选区/拖拽手柄走主题色，正文 16/1.6 行高
                   // （vendored 默认青色光标+纯黑文字，暗色主题下文字不可读）
                   editorStyle: EditorStyle.mobile(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                     cursorColor: p.primary,
                     dragHandleColor: p.primary,
                     selectionColor: p.primary.withValues(alpha: 0.18),
@@ -507,18 +514,25 @@ class _EditorPageState extends State<EditorPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: Text(errorMsg!, style: TextStyle(color: p.danger, fontSize: 12)),
               ),
-            // 底部：更新时间
+            // 底部：更新时间（左）+ 保存状态（右，可点击立即保存）
             Container(
               width: double.infinity,
               color: p.panel,
               padding: EdgeInsets.only(
-                left: 16, right: 16,
+                left: 20, right: 20,
                 top: 7,
                 bottom: MediaQuery.paddingOf(context).bottom + 7,
               ),
-              child: Text(
-                note != null ? '更新于 ${note!.updatedAt.replaceAll('T', ' ').substring(0, 16)}' : '新笔记',
-                style: TextStyle(color: p.muted, fontSize: 11.5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      note != null ? '更新于 ${note!.updatedAt.replaceAll('T', ' ').substring(0, 16)}' : '新笔记',
+                      style: TextStyle(color: p.muted, fontSize: 11.5),
+                    ),
+                  ),
+                  _saveStateWidget(p),
+                ],
               ),
             ),
           ],
