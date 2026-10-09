@@ -396,90 +396,97 @@ class _EditorPageState extends State<EditorPage> {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  // 已有标签：chips 单独一行
+                  if (tags.isNotEmpty) ...[
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final t in tags)
+                          InputChip(
+                            label: Text(t, style: TextStyle(fontSize: 12, color: p.muted)),
+                            backgroundColor: p.chip,
+                            side: BorderSide.none,
+                            visualDensity: VisualDensity.compact,
+                            onDeleted: () {
+                              setState(() => tags.remove(t));
+                              _markDirty();
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  // 两个等宽胶囊：标签输入（🏷）+ 分组（📁）
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            for (final t in tags)
-                              InputChip(
-                                label: Text(t, style: TextStyle(fontSize: 12, color: p.muted)),
-                                backgroundColor: p.chip,
-                                side: BorderSide.none,
-                                visualDensity: VisualDensity.compact,
-                                onDeleted: () {
-                                  setState(() => tags.remove(t));
-                                  _markDirty();
-                                },
-                              ),
-                            // 标签输入胶囊：🏷 + 回车加标签
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                              decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(999)),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.label_outlined, size: 15, color: p.muted),
-                                  const SizedBox(width: 6),
-                                  SizedBox(
-                                    width: 150,
-                                    child: TextField(
-                                      controller: _tagController,
-                                      onChanged: (v) => setState(() => _tagInput = v),
-                                      onSubmitted: (_) => _addTag(),
-                                      style: TextStyle(fontSize: 12.5, color: p.text),
-                                      decoration: const InputDecoration(
-                                        hintText: '回车加标签',
-                                        isDense: true,
-                                        filled: false,
-                                        border: InputBorder.none,
-                                        enabledBorder: InputBorder.none,
-                                        focusedBorder: InputBorder.none,
-                                        contentPadding: EdgeInsets.symmetric(vertical: 4),
-                                      ),
-                                    ),
+                        child: Container(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(999)),
+                          child: Row(
+                            children: [
+                              Icon(Icons.label_outlined, size: 16, color: p.muted),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: _tagController,
+                                  onChanged: (v) => setState(() => _tagInput = v),
+                                  onSubmitted: (_) => _addTag(),
+                                  style: TextStyle(fontSize: 12.5, color: p.text),
+                                  decoration: const InputDecoration(
+                                    hintText: '回车加标签',
+                                    isDense: true,
+                                    filled: false,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 4),
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // 分组胶囊：📁 + 名称 + 下拉箭头
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(12, 2, 6, 2),
-                        decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(999)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.folder_outlined, size: 16, color: p.muted),
-                            const SizedBox(width: 6),
-                            DropdownButtonHideUnderline(
-                              child: DropdownButton<String?>(
-                                value: groupId,
-                                isDense: true,
-                                style: TextStyle(fontSize: 12.5, color: p.text),
-                                icon: Icon(Icons.expand_more, size: 18, color: p.muted),
-                                items: [
-                                  const DropdownMenuItem(value: null, child: Text('未分组')),
-                                  for (final g in store.groups)
-                                    DropdownMenuItem(
-                                      value: g.id,
-                                      child: Text('${'　' * g.depth}${g.name}'),
-                                    ),
-                                ],
-                                onChanged: (v) {
-                                  setState(() => groupId = v);
-                                  _markDirty();
-                                },
+                      Expanded(
+                        child: Container(
+                          height: 38,
+                          padding: const EdgeInsets.fromLTRB(12, 0, 4, 0),
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(999)),
+                          child: Row(
+                            children: [
+                              Icon(Icons.folder_outlined, size: 17, color: p.muted),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String?>(
+                                    value: groupId,
+                                    isDense: true,
+                                    isExpanded: true,
+                                    style: TextStyle(fontSize: 12.5, color: p.text),
+                                    icon: Icon(Icons.expand_more, size: 18, color: p.muted),
+                                    items: [
+                                      const DropdownMenuItem(value: null, child: Text('未分组')),
+                                      for (final g in store.groups)
+                                        DropdownMenuItem(
+                                          value: g.id,
+                                          child: Text('${'　' * g.depth}${g.name}', overflow: TextOverflow.ellipsis),
+                                        ),
+                                    ],
+                                    onChanged: (v) {
+                                      setState(() => groupId = v);
+                                      _markDirty();
+                                    },
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
