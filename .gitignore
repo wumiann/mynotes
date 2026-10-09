@@ -35,3 +35,4 @@ FLUTTER-REWRITE.md
 # Flutter 构建中间产物
 flutter_app/android/build/
 flutter_app/*.apk
+.zcode/
