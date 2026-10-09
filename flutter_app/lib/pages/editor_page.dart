@@ -395,14 +395,14 @@ class _EditorPageState extends State<EditorPage> {
                       hintStyle: TextStyle(color: p.muted.withValues(alpha: 0.55), fontWeight: FontWeight.w700, fontSize: 22),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: Wrap(
                           spacing: 6,
-                          runSpacing: 4,
+                          runSpacing: 6,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             for (final t in tags)
@@ -416,45 +416,70 @@ class _EditorPageState extends State<EditorPage> {
                                   _markDirty();
                                 },
                               ),
-                            SizedBox(
-                              width: 110,
-                              child: TextField(
-                                controller: _tagController,
-                                onChanged: (v) => setState(() => _tagInput = v),
-                                onSubmitted: (_) => _addTag(),
-                                style: const TextStyle(fontSize: 12.5),
-                                decoration: const InputDecoration(
-                                  hintText: '回车加标签',
-                                  isDense: true,
-                                  filled: false,
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(vertical: 4),
-                                ),
+                            // 标签输入胶囊：🏷 + 回车加标签
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                              decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(999)),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.label_outlined, size: 15, color: p.muted),
+                                  const SizedBox(width: 6),
+                                  SizedBox(
+                                    width: 150,
+                                    child: TextField(
+                                      controller: _tagController,
+                                      onChanged: (v) => setState(() => _tagInput = v),
+                                      onSubmitted: (_) => _addTag(),
+                                      style: TextStyle(fontSize: 12.5, color: p.text),
+                                      decoration: const InputDecoration(
+                                        hintText: '回车加标签',
+                                        isDense: true,
+                                        filled: false,
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(vertical: 4),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // 分组下拉
-                      DropdownButtonHideUnderline(
-                        child: DropdownButton<String?>(
-                          value: groupId,
-                          isDense: true,
-                          style: TextStyle(fontSize: 12.5, color: p.muted),
-                          icon: Icon(Icons.folder_outlined, size: 16, color: p.muted),
-                          items: [
-                            const DropdownMenuItem(value: null, child: Text('未分组')),
-                            for (final g in store.groups)
-                              DropdownMenuItem(
-                                value: g.id,
-                                child: Text('${'　' * g.depth}${g.name}'),
+                      // 分组胶囊：📁 + 名称 + 下拉箭头
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(12, 2, 6, 2),
+                        decoration: BoxDecoration(color: p.chip, borderRadius: BorderRadius.circular(999)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.folder_outlined, size: 16, color: p.muted),
+                            const SizedBox(width: 6),
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<String?>(
+                                value: groupId,
+                                isDense: true,
+                                style: TextStyle(fontSize: 12.5, color: p.text),
+                                icon: Icon(Icons.expand_more, size: 18, color: p.muted),
+                                items: [
+                                  const DropdownMenuItem(value: null, child: Text('未分组')),
+                                  for (final g in store.groups)
+                                    DropdownMenuItem(
+                                      value: g.id,
+                                      child: Text('${'　' * g.depth}${g.name}'),
+                                    ),
+                                ],
+                                onChanged: (v) {
+                                  setState(() => groupId = v);
+                                  _markDirty();
+                                },
                               ),
+                            ),
                           ],
-                          onChanged: (v) {
-                            setState(() => groupId = v);
-                            _markDirty();
-                          },
                         ),
                       ),
                     ],
@@ -462,7 +487,12 @@ class _EditorPageState extends State<EditorPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 4),
+            // 头部与正文的分隔线（对齐左右留白）
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Divider(height: 1, color: p.border),
+            ),
+            const SizedBox(height: 6),
             // 正文 + 移动端格式工具栏（随键盘显隐）
             Expanded(
               child: MobileToolbarV2(
