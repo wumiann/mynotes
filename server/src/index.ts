@@ -15,6 +15,7 @@ import { tagRoutes } from './tags.js';
 import { backupRoutes, startAutoBackup } from './backup.js';
 import { settingsRoutes, sweepTrash } from './settings.js';
 import { dsNoteImportRoutes } from './dsnote.js';
+import { gnotesImportRoutes } from './gnotes.js';
 import { ensureSelfSignedCert } from './tls.js';
 
 const log = { info: console.log, warn: console.warn, error: console.error };
@@ -50,6 +51,7 @@ const registerApp = async (app: FastifyInstance): Promise<void> => {
     await scope.register(settingsRoutes);
     await scope.register(backupRoutes);
     await scope.register(dsNoteImportRoutes);
+    await scope.register(gnotesImportRoutes);
   });
 
   const webDist = config.webDistCandidates.find((d) => fs.existsSync(path.join(d, 'index.html')));

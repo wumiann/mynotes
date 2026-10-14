@@ -330,6 +330,29 @@ async function logoutOthers(): Promise<void> {
 const restoreInput = ref<HTMLInputElement | null>(null);
 const restoring = ref('');
 
+const gnotesInput = ref<HTMLInputElement | null>(null);
+
+async function doImportGnotes(e: Event): Promise<void> {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  importingMsg.value = '导入中…';
+  try {
+    const json = await api.importGnotes(file);
+    const parts = [`成功导入 ${json.imported} 条笔记`];
+    if (json.groups) parts.push(`${json.groups} 个分组`);
+    if (json.skippedBroken) parts.push(`跳过 ${json.skippedBroken} 条无法解析的笔记`);
+    importingMsg.value = parts.join('、');
+    await Promise.all([refreshNotes(), refreshGroups()]);
+    await reloadStats();
+    window.setTimeout(() => (importingMsg.value = ''), 6000);
+  } catch (err) {
+    importingMsg.value = '';
+    void alertError(err, '导入失败');
+  }
+}
+
 const nsxInput = ref<HTMLInputElement | null>(null);
 const importingMsg = ref('');
 
@@ -583,6 +606,11 @@ async function doRestore(e: Event): Promise<void> {
           <span class="hint">从 DS Note（群晖 Note Station）的 .nsx 导出文件导入：笔记本→分组、标签保留、图片尽力迁移。</span>
           <button type="button" class="btn" @click="nsxInput?.click()">DS Note 导入</button>
           <input ref="nsxInput" type="file" accept=".nsx,application/octet-stream" hidden @change="doImportNsx" />
+        </div>
+        <div class="setting-row">
+          <span class="hint">从 GNotes 的导出 zip 导入：文件夹→分组、创建/修改时间与星标保留。</span>
+          <button type="button" class="btn" @click="gnotesInput?.click()">GNotes 导入</button>
+          <input ref="gnotesInput" type="file" accept=".zip,application/zip" hidden @change="doImportGnotes" />
         </div>
         <div v-if="importingMsg" class="hint">{{ importingMsg }}</div>
         <div class="setting-row">

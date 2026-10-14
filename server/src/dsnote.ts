@@ -28,7 +28,7 @@ interface DsEntry {
   attachment?: unknown;
 }
 
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|li|h[1-6]|blockquote|pre)>/gi, '\n')
@@ -42,7 +42,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-function ensureGroup(name: string, parentGroupId: string | null): string {
+export function ensureGroup(name: string, parentGroupId: string | null): string {
   const row = db
     .prepare('SELECT id FROM groups WHERE name = ? AND parent_id IS ?')
     .get(name, parentGroupId) as { id: string } | undefined;

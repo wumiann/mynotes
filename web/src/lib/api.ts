@@ -141,6 +141,12 @@ export const api = {
     req<{ ok: boolean; settings: AppSettings }>('PUT', '/api/settings', p),
   getStats: () => req<Stats>('GET', '/api/stats'),
 
+  importGnotes: async (file: File) => {
+    const res = await rawFetch('/api/import/gnotes', { method: 'POST', body: file });
+    if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => ({})));
+    return (await res.json()) as { ok: boolean; imported: number; skippedBroken: number; groups: number };
+  },
+
   importNsx: async (file: File) => {
     const res = await rawFetch('/api/import/nsx', { method: 'POST', body: file });
     if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => ({})));
