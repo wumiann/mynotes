@@ -142,13 +142,19 @@ export const api = {
   getStats: () => req<Stats>('GET', '/api/stats'),
 
   importGnotes: async (file: File) => {
-    const res = await rawFetch('/api/import/gnotes', { method: 'POST', body: file });
+    // 必须走 FormData（multipart）：直接以 File 为 body 时浏览器会标 application/zip，
+    // Fastify 没有该类型解析器会回 415 Unsupported Media Type
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    const res = await rawFetch('/api/import/gnotes', { method: 'POST', body: fd });
     if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => ({})));
     return (await res.json()) as { ok: boolean; imported: number; skippedBroken: number; groups: number };
   },
 
   importNsx: async (file: File) => {
-    const res = await rawFetch('/api/import/nsx', { method: 'POST', body: file });
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    const res = await rawFetch('/api/import/nsx', { method: 'POST', body: fd });
     if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => ({})));
     return (await res.json()) as {
       ok: boolean;
