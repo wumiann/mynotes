@@ -93,7 +93,7 @@ function currentPayload() {
     return {
       type: 'card' as const,
       title: title.value,
-      content: cardEnc.value ? '' : JSON.stringify(serializeCard(cardData.value)),
+      content: cardEnc.value ? '' : JSON.stringify(serializeCard({ ...cardData.value, name: title.value })),
       plainText: cardEnc.value ? '' : plainSummary(),
       tags: [...tags.value],
       pinned: pinned.value,
@@ -116,7 +116,9 @@ function isEmptyDraft(p: { title: string; plainText: string; content: string }):
   if (isCard.value) {
     const c = cardData.value;
     const credsEmpty = c.credentials.every((x) => !x.label.trim() && !x.username.trim() && !x.password);
-    return !c.name.trim() && !c.url.trim() && !c.notes.trim() && credsEmpty;
+    // title 是「名称」输入框的绑定值（cardData.name 不会随输入同步，恒为空）——
+    // 漏看 title 会把「只填了名称」的卡片当空草稿静默丢弃
+    return !title.value.trim() && !c.name.trim() && !c.url.trim() && !c.notes.trim() && credsEmpty;
   }
   return !p.title.trim() && !p.plainText.trim() && !p.content.includes('/a/');
 }
@@ -150,7 +152,7 @@ async function save(): Promise<boolean> {
       return false;
     }
     try {
-      payload.content = await vault.encrypt(serializeCard(cardData.value), store.encKey!);
+      payload.content = await vault.encrypt(serializeCard({ ...cardData.value, name: title.value }), store.encKey!);
     } catch {
       saveState.value = 'error';
       errorMsg.value = '加密失败';
