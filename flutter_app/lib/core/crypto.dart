@@ -5,9 +5,17 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:pointycastle/export.dart';
 
 const kIterations = 600000;
+
+/// compute 的入口必须是顶层函数（不可为闭包/实例方法）：参数只传字节
+String _pbkdf2HexSync(List<Uint8List> args) {
+  final d = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64))
+    ..init(Pbkdf2Parameters(args[1], kIterations, 32));
+  return bytesToHex(d.process(args[0]));
+}
 
 Uint8List hexToBytes(String hex) {
   final out = Uint8List(hex.length ~/ 2);
@@ -28,11 +36,11 @@ class Vault {
   bool get unlocked => _encKey != null;
 
   Future<String> deriveHex(String password, String saltHex) async {
-    // isolate 之外的纯 Dart PBKDF2 会阻塞 UI：用 compute 无法传闭包，
-    // 这里同步计算（~1.6s），调用方负责先转圈提示
-    final d = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64))
-      ..init(Pbkdf2Parameters(hexToBytes(saltHex), kIterations, 32));
-    return bytesToHex(d.process(utf8.encode(password)));
+    // PBKDF2 600k 迭代是纯 Dart 实现：主 isolate 同步计算在桌面 ~1.6s，
+    // 手机上要 5-10 秒——期间用户点屏幕会触发 Android ANR（输入 5 秒无响应）
+    // 直接被系统杀进程（登录"卡死然后闪退"的根因）。
+    // 派生移到后台 isolate：compute 接顶层函数+参数即可，不需要闭包。
+    return compute(_pbkdf2HexSync, [Uint8List.fromList(utf8.encode(password)), hexToBytes(saltHex)]);
   }
 
   Future<void> unlock(String password, String salt2Hex) async {
