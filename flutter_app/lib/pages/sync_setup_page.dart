@@ -204,9 +204,12 @@ class _SyncSetupPageState extends State<SyncSetupPage> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('默认端口 8322，自定义映射端口的按实际填写；'
-                  'HTTPS 在地址前加 https://（端口通常 8443）。',
-                  style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.5)),
+              Text(
+                  '内网访问：地址填 NAS 的 IP、端口填 8322 即可——App 的卡片加密在本机完成，'
+                  '不依赖 HTTPS。\n'
+                  '要走 HTTPS（传输加密）：地址以 https:// 开头、端口填 8443，自签名证书已放行。\n'
+                  'Docker 自定义映射端口的按实际填写。',
+                  style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.6)),
               const SizedBox(height: 14),
               FilledButton(
                 onPressed: busy ? null : _connect,

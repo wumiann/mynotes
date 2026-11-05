@@ -1,9 +1,11 @@
-// API 客户端：Bearer 令牌 + 服务器地址（首启引导页配置）
+// API 客户端：Bearer 令牌 + 服务器地址（同步向导配置）
 // 在线优先；错误统一 ApiError(status, message)
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,8 +24,10 @@ class Api {
   String? _token;
   String? _username;
 
-  // 单例复用：每次新建 Client 不关闭会泄漏连接，移动端很快耗尽句柄导致请求全挂
-  static final http.Client _client = http.Client();
+  // 单例复用：每次新建 Client 不关闭会泄漏连接，移动端很快耗尽句柄导致请求全挂。
+  // 放行自签名证书：服务端 8443 用的是自动生成的自签证书（对齐旧 Capacitor 版行为）
+  static final http.Client _client = IOClient(HttpClient()
+    ..badCertificateCallback = (X509Certificate cert, String host, int port) => true);
 
   String? get baseUrl => _baseUrl;
   String? get username => _username;
@@ -100,7 +104,7 @@ class Api {
 
   // ---------- 认证 ----------
   Future<Map<String, dynamic>> health(String base) async {
-    final res = await http.get(Uri.parse('$base/api/health')).timeout(const Duration(seconds: 8));
+    final res = await _client.get(Uri.parse('$base/api/health')).timeout(const Duration(seconds: 8));
     if (res.statusCode != 200) throw ApiError(res.statusCode, '服务不可用(${res.statusCode})');
     return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
   }
