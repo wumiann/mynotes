@@ -19,6 +19,7 @@ class SyncSetupPage extends StatefulWidget {
 class _SyncSetupPageState extends State<SyncSetupPage> {
   int _step = 0; // 0 地址 / 1 登录 / 2 策略 / 3 执行结果
   final _addr = TextEditingController();
+  final _port = TextEditingController();
   bool busy = false;
   String? error;
   SyncPullMode _mode = SyncPullMode.merge;
@@ -29,7 +30,16 @@ class _SyncSetupPageState extends State<SyncSetupPage> {
   void initState() {
     super.initState();
     holdSync(); // 策略未定前挂起一切自动同步
-    _addr.text = api.baseUrl ?? 'http://';
+    // 预填：更换服务器时拆解已有地址到 地址/端口 两框；首次进入留空由 hint 引导
+    _port.text = '8322';
+    final b = api.baseUrl;
+    if (b != null) {
+      final m = RegExp(r'^(https?)://([^/:]+)(?::(\d+))?$').firstMatch(b);
+      if (m != null) {
+        _addr.text = m[1] == 'https' ? 'https://${m[2]}' : m[2]!;
+        _port.text = m[3] ?? '';
+      }
+    }
   }
 
   @override
@@ -40,6 +50,7 @@ class _SyncSetupPageState extends State<SyncSetupPage> {
       bootSync();
     }
     _addr.dispose();
+    _port.dispose();
     super.dispose();
   }
 
@@ -51,24 +62,39 @@ class _SyncSetupPageState extends State<SyncSetupPage> {
   // ---------- step 0：地址 ----------
   Future<void> _connect() async {
     var addr = _addr.text.trim();
+    final port = _port.text.trim();
     if (addr.isEmpty) {
       setState(() => error = '请输入服务器地址');
       return;
     }
-    if (!addr.startsWith('http://') && !addr.startsWith('https://')) {
-      addr = 'http://$addr';
+    // 协议：地址带 https:// 前缀即走 HTTPS，其余默认 HTTP
+    var scheme = 'http';
+    if (addr.startsWith('https://')) {
+      scheme = 'https';
+      addr = addr.substring(8);
+    } else if (addr.startsWith('http://')) {
+      addr = addr.substring(7);
     }
-    // 免端口输入：无冒号时默认 8322（MyNotes 标准端口）
-    final hostPart = addr.replaceFirst(RegExp('^https?://'), '');
-    if (!hostPart.contains(':')) addr = '$addr:8322';
-    _addr.text = addr;
+    // 地址里粘了完整 IP:端口 时以地址为准（端口框同步展示）
+    final hostPort = RegExp(r'^([^:]+):(\d+)$').firstMatch(addr);
+    if (hostPort != null) {
+      addr = hostPort.group(1)!;
+      _port.text = hostPort.group(2)!;
+    }
+    final portNum = int.tryParse(_port.text.trim());
+    if (addr.isEmpty || portNum == null || portNum < 1 || portNum > 65535) {
+      setState(() => error = '地址或端口格式不正确（端口 1-65535）');
+      return;
+    }
+    final full = '$scheme://$addr:$portNum';
+    _addr.text = '${scheme}://$addr';
     setState(() {
       busy = true;
       error = null;
     });
     try {
-      await api.health(addr);
-      await api.saveConfig(addr);
+      await api.health(full);
+      await api.saveConfig(full);
       // 更换服务器场景：旧令牌一并作废，重新登录
       if (!store.authed) await api.clearAuth();
       setState(() {
@@ -144,17 +170,43 @@ class _SyncSetupPageState extends State<SyncSetupPage> {
                   '不配置也可以一直离线使用，笔记只保存在本机。',
                   style: TextStyle(color: p.muted, fontSize: 13, height: 1.5)),
               const SizedBox(height: 20),
-              TextField(
-                controller: _addr,
-                enabled: !busy,
-                keyboardType: TextInputType.url,
-                autocorrect: false,
-                decoration: const InputDecoration(
-                  hintText: 'http://NAS-IP:8322',
-                  prefixIcon: Icon(Icons.dns_outlined),
-                ),
-                onSubmitted: (_) => _connect(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _addr,
+                      enabled: !busy,
+                      keyboardType: TextInputType.url,
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        hintText: 'NAS 的 IP 或域名',
+                        prefixIcon: Icon(Icons.dns_outlined),
+                      ),
+                      onSubmitted: (_) => _connect(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 110,
+                    child: TextField(
+                      controller: _port,
+                      enabled: !busy,
+                      keyboardType: TextInputType.number,
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        hintText: '8322',
+                        labelText: '端口',
+                      ),
+                      onSubmitted: (_) => _connect(),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 8),
+              Text('默认端口 8322，自定义映射端口的按实际填写；'
+                  'HTTPS 在地址前加 https://（端口通常 8443）。',
+                  style: TextStyle(color: p.muted, fontSize: 11.5, height: 1.5)),
               const SizedBox(height: 14),
               FilledButton(
                 onPressed: busy ? null : _connect,
