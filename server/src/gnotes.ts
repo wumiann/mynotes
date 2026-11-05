@@ -15,17 +15,7 @@ import { config as appConfig } from './config.js';
 import { newId } from './util.js';
 import { unzipTo } from './backup.js';
 import { stripHtml, ensureGroup } from './dsnote.js';
-
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
-}
+import { decodeHtmlEntities as decodeEntities, foldDoubleEntities } from './util.js';
 
 function hiddenValue(html: string, name: string): string | null {
   const m = html.match(new RegExp(`<input[^>]*name="${name}"[^>]*value="([^"]*)"`));
@@ -91,7 +81,7 @@ export async function gnotesImportRoutes(app: FastifyInstance): Promise<void> {
           const raw = fs.readFileSync(path.join(folderPath, nd.name, 'content.html'), 'utf8');
           try {
             // 元数据。GNotes 的默认收件箱文件夹名导出后是字面量 "null"，映射为「未分类」
-            const rawFolder = decodeEntities(hiddenValue(raw, 'X-Folder-Name') ?? folder.name);
+            const rawFolder = decodeEntities(hiddenValue(raw, 'X-Folder-Name') ?? folder.name).trim();
             const folderName = !rawFolder || rawFolder === 'null' || rawFolder === 'undefined' ? '未分类' : rawFolder;
             const created = msToIso(hiddenValue(raw, 'X-Created-Date'));
             const modified = msToIso(hiddenValue(raw, 'X-Modified-Date'));
@@ -99,7 +89,7 @@ export async function gnotesImportRoutes(app: FastifyInstance): Promise<void> {
 
             // 标题：<h4 class="text_overflow">…</h4>
             const titleMatch = raw.match(/<h4 class="text_overflow">([\s\S]*?)<\/h4>/);
-            const title = titleMatch ? decodeEntities(titleMatch[1]) : '未命名';
+            const title = titleMatch ? decodeEntities(titleMatch[1]).trim() : '未命名';
 
             // 正文：<div class="content"> 内、去掉创建/修改时间行
             const contentMatch = raw.match(/<div class="content">([\s\S]*?)<\/div>\s*<\/div>\s*<\/body>/);
@@ -112,7 +102,7 @@ export async function gnotesImportRoutes(app: FastifyInstance): Promise<void> {
 
             let contentJson: string;
             try {
-              contentJson = JSON.stringify(generateJSON(`<div>${fragment}</div>`, [StarterKit, TiptapImage]));
+              contentJson = JSON.stringify(generateJSON(foldDoubleEntities(`<div>${fragment}</div>`), [StarterKit, TiptapImage]));
             } catch {
               const plain = stripHtml(fragment);
               contentJson = JSON.stringify({

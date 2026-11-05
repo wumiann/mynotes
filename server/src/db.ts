@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config } from './config.js';
+import { decodeHtmlEntities } from './util.js';
 
 export const attachmentsDir = path.join(config.dataDir, 'attachments');
 fs.mkdirSync(attachmentsDir, { recursive: true });
@@ -88,6 +89,35 @@ if (!noteCols.some((c) => c.name === 'group_id')) {
 if (!noteCols.some((c) => c.name === 'enc')) {
   db.exec('ALTER TABLE notes ADD COLUMN enc INTEGER NOT NULL DEFAULT 0');
   db.exec("UPDATE notes SET enc = 1 WHERE type = 'card'");
+}
+
+// 一次性修复：导入器早期版本不解码 &ensp; 等实体，列表摘要/标题显示为字面 &ensp;
+// （对含 "&…;" 的行重解码标题与摘要正文；无变化不写库，跑完记标记）
+if (getSetting('fixedHtmlEntitiesV1', '') !== '1') {
+  const rows = db
+    .prepare("SELECT id, title, plain_text FROM notes WHERE title LIKE '%&%;%' OR plain_text LIKE '%&%;%'")
+    .all() as { id: string; title: string; plain_text: string }[];
+  let fixed = 0;
+  const upd = db.prepare('UPDATE notes SET title = ?, plain_text = ? WHERE id = ?');
+  for (const r of rows) {
+    const t = decodeHtmlEntities(r.title);
+    const p = decodeHtmlEntities(r.plain_text);
+    if (t !== r.title || p !== r.plain_text) {
+      upd.run(t, p, r.id);
+      fixed++;
+    }
+  }
+  // 版本历史里的摘要一并修（历史 diff 展示同样受影响）
+  const vRows = db
+    .prepare("SELECT id, plain_text FROM note_versions WHERE plain_text LIKE '%&%;%'")
+    .all() as { id: string; plain_text: string }[];
+  const updV = db.prepare('UPDATE note_versions SET plain_text = ? WHERE id = ?');
+  for (const r of vRows) {
+    const p = decodeHtmlEntities(r.plain_text);
+    if (p !== r.plain_text) updV.run(p, r.id);
+  }
+  setSetting('fixedHtmlEntitiesV1', '1');
+  if (fixed > 0) console.log(`[migrate] 实体解码修复 ${fixed} 条笔记`);
 }
 
 export function getSetting(key: string, fallback: string): string {

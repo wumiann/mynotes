@@ -11,7 +11,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
 import { attachmentsDir, db } from './db.js';
 import { config as appConfig } from './config.js';
-import { newId } from './util.js';
+import { newId, decodeHtmlEntities, foldDoubleEntities } from './util.js';
 import { unzipTo } from './backup.js';
 
 interface DsEntry {
@@ -29,15 +29,12 @@ interface DsEntry {
 }
 
 export function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|li|h[1-6]|blockquote|pre)>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
+  return decodeHtmlEntities(
+    html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|li|h[1-6]|blockquote|pre)>/gi, '\n')
+      .replace(/<[^>]+>/g, ''),
+  )
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -204,7 +201,7 @@ export async function dsNoteImportRoutes(app: FastifyInstance): Promise<void> {
         let contentJson: string;
         try {
           contentJson = html
-            ? JSON.stringify(generateJSON(html, [StarterKit, TiptapImage]))
+            ? JSON.stringify(generateJSON(foldDoubleEntities(html), [StarterKit, TiptapImage]))
             : JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] });
         } catch {
           // HTML 无法解析时退化为纯文本段落
