@@ -148,7 +148,7 @@ export const api = {
     fd.append('file', file, file.name);
     const res = await rawFetch('/api/import/gnotes', { method: 'POST', body: fd });
     if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => ({})));
-    return (await res.json()) as { ok: boolean; imported: number; skippedBroken: number; groups: number };
+    return (await res.json()) as { ok: boolean; imported: number; skippedEmpty: number; skippedBroken: number; groups: number };
   },
 
   importNsx: async (file: File) => {

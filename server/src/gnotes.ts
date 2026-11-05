@@ -69,6 +69,7 @@ export async function gnotesImportRoutes(app: FastifyInstance): Promise<void> {
 
       let imported = 0;
       let skippedBroken = 0;
+      let skippedEmpty = 0;
       const groupNames = new Set<string>();
 
       for (const folder of folders) {
@@ -97,6 +98,14 @@ export async function gnotesImportRoutes(app: FastifyInstance): Promise<void> {
             fragment = fragment.replace(/<p class="create_time">[\s\S]*?<\/p>/, '').trim();
             if (!fragment) {
               skippedBroken++;
+              continue;
+            }
+            // 空笔记跳过：GNotes 里"新建后没写"的笔记默认名「无标题」且内容为空
+            // （正文只有空白/空标签），导入它们只会制造一堆点开是空的垃圾条目
+            const plainForCheck = stripHtml(fragment);
+            const isDefaultTitle = title === '' || title === '无标题' || title === '未命名';
+            if (isDefaultTitle && !plainForCheck) {
+              skippedEmpty++;
               continue;
             }
 
@@ -135,7 +144,7 @@ export async function gnotesImportRoutes(app: FastifyInstance): Promise<void> {
       }
 
       fs.rmSync(staging, { recursive: true, force: true });
-      return { ok: true, imported, skippedBroken, groups: groupNames.size, attachmentCount: 0 };
+      return { ok: true, imported, skippedBroken, skippedEmpty, groups: groupNames.size, attachmentCount: 0 };
     } catch (err) {
       fs.rmSync(staging, { recursive: true, force: true });
       return reply.code(400).send({

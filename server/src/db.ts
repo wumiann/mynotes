@@ -120,6 +120,18 @@ if (getSetting('fixedHtmlEntitiesV1', '') !== '1') {
   if (fixed > 0) console.log(`[migrate] 实体解码修复 ${fixed} 条笔记`);
 }
 
+// 一次性清理：GNotes 导入的"无标题+空内容"笔记（源应用里新建没写的空笔记，
+// GNotes 默认命名「无标题」）。判定从严：默认标题 + 摘要空 + 无图片引用，避免误删
+if (getSetting('fixedEmptyNotesV1', '') !== '1') {
+  const del = db.prepare(`DELETE FROM notes WHERE type = 'text' AND enc = 0
+    AND TRIM(COALESCE(title,'')) IN ('', '无标题', '未命名', '无标题便签')
+    AND TRIM(COALESCE(plain_text,'')) = ''
+    AND content NOT LIKE '%/a/%'`);
+  const info = del.run();
+  setSetting('fixedEmptyNotesV1', '1');
+  if (info.changes > 0) console.log(`[migrate] 清理 ${info.changes} 条空笔记`);
+}
+
 export function getSetting(key: string, fallback: string): string {
   const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as
     | { value: string }

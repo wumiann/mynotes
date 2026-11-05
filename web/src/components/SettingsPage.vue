@@ -342,6 +342,7 @@ async function doImportGnotes(e: Event): Promise<void> {
     const json = await api.importGnotes(file);
     const parts = [`成功导入 ${json.imported} 条笔记`];
     if (json.groups) parts.push(`${json.groups} 个分组`);
+    if (json.skippedEmpty) parts.push(`跳过 ${json.skippedEmpty} 条空笔记`);
     if (json.skippedBroken) parts.push(`跳过 ${json.skippedBroken} 条无法解析的笔记`);
     importingMsg.value = parts.join('、');
     await Promise.all([refreshNotes(), refreshGroups()]);

@@ -158,6 +158,7 @@ export async function dsNoteImportRoutes(app: FastifyInstance): Promise<void> {
       let imported = 0;
       let skippedEncrypted = 0;
       let skippedBroken = 0;
+      let skippedEmptyNsx = 0;
       let attachmentCount = 0;
       const insertNote = db.prepare(
         `INSERT INTO notes (id, type, title, content, plain_text, tags, pinned, group_id, version, created_at, updated_at)
@@ -198,6 +199,13 @@ export async function dsNoteImportRoutes(app: FastifyInstance): Promise<void> {
         }
 
         const plain = typeof e.brief === 'string' && e.brief.trim() ? e.brief : stripHtml(html);
+        // 空便签跳过：默认标题（无标题便签/未命名等）且无正文无附件，
+        // 与 GNotes 导入的空笔记处理一致
+        const fallbackTitle = ['无标题便签', '未命名', '无标题', ''];
+        if (!plain.trim() && !Array.isArray(e.attachment) && fallbackTitle.includes((e.title ?? '').trim())) {
+          skippedEmptyNsx++;
+          continue;
+        }
         let contentJson: string;
         try {
           contentJson = html
@@ -236,7 +244,7 @@ export async function dsNoteImportRoutes(app: FastifyInstance): Promise<void> {
       }
 
       fs.rmSync(staging, { recursive: true, force: true });
-      return { ok: true, imported, skippedEncrypted, skippedBroken, groups: groupMap.size, attachmentCount };
+      return { ok: true, imported, skippedEncrypted, skippedBroken, skippedEmpty: skippedEmptyNsx, groups: groupMap.size, attachmentCount };
     } catch (err) {
       fs.rmSync(staging, { recursive: true, force: true });
       return reply.code(400).send({
