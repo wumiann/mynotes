@@ -66,7 +66,11 @@ const diffView = ref<{ type: string; text: string }[]>([]);
 
 let saveTimer: number | undefined;
 
-const isCard = computed(() => (note.value ? note.value.type === 'card' : store.pendingType === 'card'));
+// 编辑器类型快照：load 时记下（新笔记取当时的 pendingType），此后不再变。
+// 不能实时读 pendingType——从新卡片点「新建笔记」切换时，按钮会先把 pendingType
+// 改成 'text' 再触发切换保存，保存时读到新值会把卡片当文本笔记存（内容错乱）
+const editorKind = ref<'text' | 'card'>('text');
+const isCard = computed(() => editorKind.value === 'card');
 
 const saveStateText = computed(() => {
   if (saving.value) return '保存中…';
@@ -159,9 +163,11 @@ async function save(): Promise<boolean> {
       return false;
     }
   }
-  const snapshot = isCard.value
-    ? JSON.stringify(serializeCard(cardData.value)) + JSON.stringify([tags.value, pinned.value, groupId.value])
-    : JSON.stringify(payload);
+  // 快照对比决定“保存期间又有修改”：卡片须含标题（名称框绑定 title），否则保存期间只改标题会漏检丢失
+  const cardSnap = () =>
+    JSON.stringify(serializeCard({ ...cardData.value, name: title.value })) +
+    JSON.stringify([title.value, tags.value, pinned.value, groupId.value]);
+  const snapshot = isCard.value ? cardSnap() : JSON.stringify(payload);
   saving.value = true;
   saveState.value = 'saving';
   try {
@@ -175,9 +181,7 @@ async function save(): Promise<boolean> {
       version.value = res.note.version;
       note.value = res.note; // 刷新底部“更新于”时间
     }
-    const nowSnap = isCard.value
-      ? JSON.stringify(serializeCard(cardData.value)) + JSON.stringify([tags.value, pinned.value, groupId.value])
-      : JSON.stringify(currentPayload());
+    const nowSnap = isCard.value ? cardSnap() : JSON.stringify(currentPayload());
     if (nowSnap === snapshot) {
       dirty.value = false;
       saveState.value = 'saved';
@@ -240,6 +244,8 @@ async function load(id: string): Promise<void> {
     title.value = '';
     content.value = emptyDoc();
     cardData.value = emptyCard();
+    // 类型快照取此刻的 pendingType（此后 pendingType 再变不影响本编辑器）
+    editorKind.value = store.pendingType;
     // 新卡片加密状态由列表头的新建按钮决定（🔒 加密 / 🔓 明文）
     cardEnc.value = store.pendingCardEnc;
     tags.value = [];
@@ -256,6 +262,7 @@ async function load(id: string): Promise<void> {
     const res = await api.getNote(id);
     if (store.selectedId !== id) return; // 已切到别的笔记
     note.value = res.note;
+    editorKind.value = res.note.type === 'card' ? 'card' : 'text';
     tags.value = [...res.note.tags];
     pinned.value = res.note.pinned;
     groupId.value = res.note.groupId;
@@ -543,8 +550,18 @@ async function restoreVersion(v: NoteVersionMeta): Promise<void> {
 }
 
 watch(
-  () => store.selectedId,
-  async (id, oldId) => {
+  // 同时观察 pendingType：当前已是新笔记编辑器时再点另一个「新建」按钮，
+  // selectedId 保持 'new' 不变不会触发切换——靠类型变化走"保存当前+重载"
+  () => [store.selectedId, store.pendingType] as const,
+  async ([id, pt], old) => {
+    const oldId = old?.[0];
+    if (id === oldId) {
+      if (id === 'new' && pt !== old?.[1]) {
+        if (dirty.value) await save();
+        await load('new');
+      }
+      return;
+    }
     const prevKey = note.value?.id ?? 'new';
     if (oldId && oldId === prevKey && dirty.value) await save();
     if (!id) {

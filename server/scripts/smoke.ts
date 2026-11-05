@@ -17,7 +17,8 @@ if (!fs.existsSync(serverJs)) {
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mynotes-smoke-'));
 const child = spawn(process.execPath, [serverJs], {
-  env: { ...process.env, PORT: String(PORT), DATA_DIR: dataDir },
+  // HTTPS 用随机口：避免与本机常驻服务的 8443 冲突导致临时实例启动即崩
+  env: { ...process.env, PORT: String(PORT), HTTPS_PORT: '0', DATA_DIR: dataDir },
   stdio: 'ignore',
 });
 
@@ -405,7 +406,8 @@ async function main(): Promise<void> {
   });
   ok('创建卡片笔记', r.status === 201 && r.json.note.type === 'card');
   const cardId = r.json.note?.id;
-  ok('卡片标题与正文在服务端被清空', r.json.note.title === '' && r.json.note.plainText === '');
+  // 现行为（v0.2.9+）：加密卡标题明文保留（可搜索），正文摘要 plainText 服务端不存
+  ok('加密卡标题保留明文、正文摘要被清空', r.json.note.title === '不该被存储的标题' && r.json.note.plainText === '');
   r = await call('GET', '/api/notes');
   const cardSummary = r.json.notes?.find((n: any) => n.id === cardId);
   const textSummary = r.json.notes?.find((n: any) => n.type === 'text');
@@ -528,7 +530,7 @@ async function main(): Promise<void> {
   child.kill();
   await new Promise((res) => setTimeout(res, 1000));
   const child2 = spawn(process.execPath, [serverJs], {
-    env: { ...process.env, PORT: String(PORT), DATA_DIR: dataDir },
+    env: { ...process.env, PORT: String(PORT), HTTPS_PORT: '0', DATA_DIR: dataDir },
     stdio: 'ignore',
   });
   await waitServer();
